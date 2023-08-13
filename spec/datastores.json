@@ -1,0 +1,87 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opendapi.org/spec/0-0-1/datastores.json",
+  "$defs": {
+    "host": {
+      "type": "object",
+      "description": "Datastore host details.",
+      "properties": {
+        "location": {
+          "type": "string",
+          "description": "Host location for the datastore, with optional port",
+          "examples": [
+            "org_name-acmeprod.snowflakecomputing.com",
+            "cluster_1.rds.amazonaws.com:3306",
+            "s3_bucket_name.s3.amazonaws.com",
+            "bigquery_project_id.gcp_region.cloud.google.com",
+            "examplecluster.cluster_id.us-west-2.redshift.amazonaws.com:5439",
+            "dynamodb.us-west-2.amazonaws.com"
+          ]
+        },
+        "username": {
+          "type": "string",
+          "description": "The username for the datastore."
+        },
+        "password_aws_ssm_arn": {
+          "type": "string",
+          "description": "The ARN of the secrets manager secret that contains the password for the datastore."
+        }
+      },
+      "oneOf": [
+        {"required": ["location"]},
+        {"required": ["location", "username", "password_aws_ssm_arn"]}
+      ]
+    },
+    "datastore": {
+      "type": "object",
+      "properties": {
+        "urn": {
+          "type": "string",
+          "pattern": "^(\\w+\\.)+\\w+$",
+          "description": "The URN (Uniform Resource Name) for this datastore.",
+          "examples": ["company.datastore_name.account_name", "acme.snowflake.acme_aws", "acme.mysql.cluster_1"],
+        },
+        "type": {
+          "type": "string",
+          "description": "The type of datastore.",
+          "enum": ["mysql", "postgres", "dynamodb", "snowflake"]
+        },
+        "host": {
+          "type": "object",
+          "description": "Details of the datastore host.",
+          "patternProperties":{
+            "default": {
+              "$ref": "#/$defs/host",
+              "description": "Default host details for this datastore."
+            },
+            "^env_": {
+              "$ref": "#/$defs/host",
+              "description": "Host details for a specific environment, e.g. env_prod, env_staging, env_dev, etc."
+            }
+          }
+        }
+      },
+      "required": ["urn", "type", "host"],
+      "description": "Data store information for this DAPI"
+    }
+  },
+  "type": "object",
+  "properties": {
+    "schema": {
+      "type": "string",
+      "format": "uri",
+      "default": "https://opendapi.org/spec/0-0-1/datastores.json",
+      "description": "The URI schema version for this data",
+      "examples": ["https://opendapi.org/spec/0-0-1/datastores.json"]
+    },
+    "datastores": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/datastore" },
+      "minItems": 1,
+      "description": "Datastores that are used in the organization"
+    }
+  },
+  "required": ["schema", "datastores"],
+  "description": "Configuration of datastores that are used in the organization.",
+  "title": "Datastore configurations"
+}
