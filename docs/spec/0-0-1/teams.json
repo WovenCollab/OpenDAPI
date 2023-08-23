@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://opendapi.org/opendapi/spec/0-0-1/teams.json",
+  "$id": "https://opendapi.org/spec/0-0-1/teams.json",
   "$defs": {
     "team": {
       "type": "object",
@@ -59,9 +59,9 @@
     "schema": {
       "type": "string",
       "format": "uri",
-      "default": "https://opendapi.org/opendapi/spec/0-0-1/teams.json",
+      "default": "https://opendapi.org/spec/0-0-1/teams.json",
       "description": "The URI schema version for this data",
-      "examples": ["https://opendapi.org/opendapi/spec/0-0-1/teams.json"]
+      "examples": ["https://opendapi.org/spec/0-0-1/teams.json"]
     },
     "teams": {
       "type": "array",

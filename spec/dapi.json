@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://opendapi.org/opendapi/spec/0-0-1/dapi.json",
+  "$id": "https://opendapi.org/spec/0-0-1/dapi.json",
   "$defs": {
     "datastore": {
       "type": "object",
@@ -93,9 +93,9 @@
     "schema": {
       "type": "string",
       "format": "uri",
-      "default": "https://opendapi.org/opendapi/spec/0-0-1/dapi.json",
+      "default": "https://opendapi.org/spec/0-0-1/dapi.json",
       "description": "The URI schema version for this data",
-      "examples": ["https://opendapi.org/opendapi/spec/0-0-1/dapi.json"]
+      "examples": ["https://opendapi.org/spec/0-0-1/dapi.json"]
     },
     "urn": {
       "type": "string",

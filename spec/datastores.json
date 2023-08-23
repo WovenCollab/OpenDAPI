@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://opendapi.org/opendapi/spec/0-0-1/datastores.json",
+  "$id": "https://opendapi.org/spec/0-0-1/datastores.json",
   "$defs": {
     "host": {
       "type": "object",
@@ -70,9 +70,9 @@
     "schema": {
       "type": "string",
       "format": "uri",
-      "default": "https://opendapi.org/opendapi/spec/0-0-1/datastores.json",
+      "default": "https://opendapi.org/spec/0-0-1/datastores.json",
       "description": "The URI schema version for this data",
-      "examples": ["https://opendapi.org/opendapi/spec/0-0-1/datastores.json"]
+      "examples": ["https://opendapi.org/spec/0-0-1/datastores.json"]
     },
     "datastores": {
       "type": "array",
