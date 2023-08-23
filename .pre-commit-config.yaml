@@ -1,0 +1,8 @@
+repos:
+  - repo: local
+    hooks:
+      - id: version-specs-py
+        name: version-specs-py
+        entry: python dev/version_specs.py --ignore-missing
+        language: python
+        pass_filenames: false

@@ -1,0 +1,163 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opendapi.org/opendapi/spec/0-0-1/dapi.json",
+  "$defs": {
+    "datastore": {
+      "type": "object",
+      "properties": {
+        "urn": {
+          "type": "string",
+          "pattern": "^(\\w+\\.)+\\w+$",
+          "examples": ["company.datastore_name.account_name", "acme.snowflake.acme_aws", "acme.mysql.cluster_1"],
+          "description": "The URN of the datastore as defined in spec/datastores.json."
+        },
+        "business_purposes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "description": "The business purpose for this dataset as defined in spec/purposes.json."
+          },
+          "minItems": 1,
+          "description": "The business purposes supported by this data in this datastore."
+        },
+        "data": {
+          "type": "object",
+          "properties": {
+            "identifier": {
+              "type": "string",
+              "pattern": "^[\\w$]+$",
+              "examples": ["table_name", "view_name", "event_name"]
+            },
+            "namespace": {
+              "type": "string",
+              "examples": ["database_name.schema_name", "prefix", "topic_name"],
+              "description": "Identifies the namespace for this dataset in this datastore, if any"
+            }
+          },
+          "required": ["identifier", "namespace"],
+          "description": "Identifies the DAPI in this datastore"
+        },
+        "retention_days": {
+          "type": "number",
+          "minimum": 0,
+          "description": "The number of days data is retained in this datastore. Leave blank for indefinite retention."
+        },
+        "freshness_sla_seconds": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Time for data to become accessible in this datastore, in seconds."
+        }
+      },
+      "required": ["urn", "data"],
+      "description": "Data store information for this DAPI"
+    },
+    "field": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The name of the field.",
+          "examples": ["column_name"]
+        },
+        "data_type": {
+          "type": "string",
+          "description": "The data type of the field.",
+          "enum": ["string", "integer", "float", "boolean", "timestamp", "date", "binary", "json", "array", "object"]
+        },
+        "is_nullable": {
+          "type": "boolean",
+          "description": "Indicates if the field is nullable."
+        },
+        "description": {
+          "type": "string",
+          "minLength": 10,
+          "description": "Describe this field in detail very clearly for human and AI data consumers."
+        },
+        "is_pii": {
+          "type": "boolean",
+          "description": "Indicates if the field contains Personally Identifiable Information (PII)."
+        },
+        "share_status": {
+          "type": "string",
+          "default": "unstable",
+          "enum": ["unstable", "stable", "deprecated"],
+          "description": "Indicates if the field is stable enough for data consumers to reliably depend for their use cases."
+        }
+      },
+      "required": ["data_type", "is_nullable", "description", "is_pii", "share_status"],
+      "description": "DAPI Field information."
+    }
+  },
+  "type": "object",
+  "properties": {
+    "schema": {
+      "type": "string",
+      "format": "uri",
+      "default": "https://opendapi.org/opendapi/spec/0-0-1/dapi.json",
+      "description": "The URI schema version for this data",
+      "examples": ["https://opendapi.org/opendapi/spec/0-0-1/dapi.json"]
+    },
+    "urn": {
+      "type": "string",
+      "pattern": "^(\\w+\\.)+\\w+$",
+      "description": "The URN for this data that is unique across the organization",
+      "examples": ["company.domain.dapi_name", "acme.ecommerce.cart", "acme.membership.UserCreatesAccount"]
+    },
+    "type": {
+      "type": "string",
+      "enum": ["entity", "event"],
+      "description": "The type of data whether it is an entity or an event",
+      "examples": ["entity", "event"]
+    },
+    "description": {
+      "type": "string",
+      "minLength": 10,
+      "examples": ["This event is fired when the user signs up with the product after passing identity verification"],
+      "description": "Describe this Data API in detail very clearly for human and AI data consumers"
+    },
+    "owner_team_urn": {
+      "type": "string",
+      "examples": ["acme.engineering.ecommerce"],
+      "description": "The URN of the owning team of the entity as defined in spec/teams.json"
+    },
+    "datastores": {
+      "type": "object",
+      "properties": {
+        "producers": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/datastore" },
+          "minItems": 1,
+          "description": "Datastores where the DAPI is produced (written and read)"
+        },
+        "consumers": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/datastore" },
+          "minItems": 0,
+          "description": "Datastores where the DAPI can be accessed for consumption."
+        }
+      },
+      "additionalProperties": false,
+      "required": ["producers", "consumers"],
+      "description": "Datastores used for production or consumption of this data"
+    },
+    "fields": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/field" },
+      "minItems": 1,
+      "description": "List of fields in this data."
+    },
+    "primary_key": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "description": "The name of the field.",
+        "examples": ["column_name_1"]
+      },
+      "minItems": 1,
+      "description": "Ordered list of fields that make the primary key for this dataset."
+    }
+  },
+  "required": ["schema", "urn", "type", "description", "owner_team_urn", "datastores", "fields", "primary_key"],
+  "description": "Describes the DAPI or Data API to help with data sharing and discovery",
+  "title": "Data API Specification"
+}

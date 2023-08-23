@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opendapi.org/opendapi/spec/0-0-1/teams.json",
+  "$defs": {
+    "team": {
+      "type": "object",
+      "properties": {
+        "urn": {
+          "type": "string",
+          "pattern": "^(\\w+\\.)+\\w+$",
+          "examples": ["acme.analytics.marketing", "acme.engineering.growth"],
+          "description": "The URN of the team that is unique and hierarchical across the organization."
+        },
+        "name": {
+          "type": "string",
+          "examples": ["Marketing Analytics", "Growth Engineering"],
+          "description": "The friendly name of the team."
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "description": "The email address of the team."
+        },
+        "manager_email": {
+          "type": "string",
+          "format": "email",
+          "description": "The email address of the team manager."
+        },
+        "domain": {
+          "type": "string",
+          "examples": ["Growth", "Fraud", "Sales"],
+          "description": "The organizational domain that the team belongs to, based on Domain Driven Design"
+        },
+        "slack_channel_id": {
+          "type": "string",
+          "pattern": "^C\\w+$",
+          "examples": ["C1234567890"],
+          "description": "The Slack channel associated with the team."
+        },
+        "github_team": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9-]+/[a-zA-Z0-9-]+$",
+          "examples": ["acme/marketing", "acme/engineering"],
+          "description": "The GitHub team associated with the team in the pattern `org/team`"
+        },
+        "parent_team_urn": {
+          "type": "string",
+          "pattern": "^(\\w+\\.)+\\w+$",
+          "examples": ["acme.analytics.product", "acme.engineering"],
+          "description": "The URN of the parent of this team"
+        }
+      },
+      "required": ["urn", "name", "email", "domain"],
+      "description": "Team information."
+    }
+  },
+  "type": "object",
+  "properties": {
+    "schema": {
+      "type": "string",
+      "format": "uri",
+      "default": "https://opendapi.org/opendapi/spec/0-0-1/teams.json",
+      "description": "The URI schema version for this data",
+      "examples": ["https://opendapi.org/opendapi/spec/0-0-1/teams.json"]
+    },
+    "teams": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/team"
+      },
+      "minItems": 1,
+      "description": "List of teams"
+    }
+  },
+  "required": ["schema", "teams"],
+  "title": "Teams",
+  "description": "Teams in the organization"
+}
