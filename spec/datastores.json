@@ -19,17 +19,47 @@
           ]
         },
         "username": {
-          "type": "string",
-          "description": "The username for the datastore."
+          "oneOf": [
+            {
+              "type": "string",
+              "pattern": "^plaintext:.+",
+              "description": "The plaintext username for the datastore.",
+              "examples": ["plaintext:my_username"]
+            },
+            {
+              "type": "string",
+              "pattern": "^encrypted:.+",
+              "description": "The username for the datastore that is encrypted by the DAPI server public key",
+              "examples": ["encrypted:abc123"]
+            },
+            {
+              "type": "string",
+              "pattern": "^aws_ssm:.+",
+              "description": "The ARN of the secrets manager secret that contains the username for the datastore.",
+              "examples": ["aws_ssm:arn:aws:ssm:us-west-2:123456789012:parameter/MyParameter"]
+            }
+          ]
         },
-        "password_aws_ssm_arn": {
-          "type": "string",
-          "description": "The ARN of the secrets manager secret that contains the password for the datastore."
+        "password": {
+          "oneOf": [
+            {
+              "type": "string",
+              "pattern": "^encrypted:.+",
+              "description": "The password for the datastore that is encrypted by the DAPI server public key",
+              "examples": ["encrypted:abc123"]
+            },
+            {
+              "type": "string",
+              "pattern": "^aws_ssm:.+",
+              "description": "The ARN of the secrets manager secret that contains the password for the datastore.",
+              "examples": ["aws_ssm:arn:aws:ssm:us-west-2:123456789012:parameter/MyParameter"]
+            }
+          ]
         }
       },
       "oneOf": [
         {"required": ["location"]},
-        {"required": ["location", "username", "password_aws_ssm_arn"]}
+        {"required": ["location", "username", "password"]}
       ]
     },
     "datastore": {
@@ -77,7 +107,6 @@
     "datastores": {
       "type": "array",
       "items": { "$ref": "#/$defs/datastore" },
-      "minItems": 1,
       "description": "Datastores that are used in the organization"
     }
   },

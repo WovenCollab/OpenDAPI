@@ -64,6 +64,7 @@ def copy_specs_by_version(src_dir, dest_dir, allow_overwrite=False, ignore_missi
                   f"Content mismatch between {src_path} and {dest_path}:\n"
                   "  === Diff ===\n"
                   f"{diff}"
+                  "Run version_specs.py with --allow-overwrite to overwrite destination files."
                 )
           else:
             shutil.copy(src_path, dest_path)

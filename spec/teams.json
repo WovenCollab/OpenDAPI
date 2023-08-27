@@ -68,7 +68,6 @@
       "items": {
         "$ref": "#/$defs/team"
       },
-      "minItems": 1,
       "description": "List of teams"
     }
   },

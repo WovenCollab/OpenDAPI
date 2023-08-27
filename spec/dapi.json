@@ -17,7 +17,6 @@
             "type": "string",
             "description": "The business purpose for this dataset as defined in spec/purposes.json."
           },
-          "minItems": 1,
           "description": "The business purposes supported by this data in this datastore."
         },
         "data": {
@@ -126,13 +125,11 @@
         "producers": {
           "type": "array",
           "items": { "$ref": "#/$defs/datastore" },
-          "minItems": 1,
           "description": "Datastores where the DAPI is produced (written and read)"
         },
         "consumers": {
           "type": "array",
           "items": { "$ref": "#/$defs/datastore" },
-          "minItems": 0,
           "description": "Datastores where the DAPI can be accessed for consumption."
         }
       },
@@ -153,7 +150,6 @@
         "description": "The name of the field.",
         "examples": ["column_name_1"]
       },
-      "minItems": 1,
       "description": "Ordered list of fields that make the primary key for this dataset."
     }
   },
