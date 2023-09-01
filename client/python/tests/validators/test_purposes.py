@@ -9,7 +9,7 @@ def test_collect_purposes_urn(temp_directory, mocker):
         "opendapi.validators.base.BaseValidator._get_file_contents_for_suffix",
         return_value={
             f"{temp_directory}/my_company.purposes.yaml": {
-                "business_purposes": [
+                "purposes": [
                     {"urn": "company.purpose_a"},
                     {"urn": "company.purpose_b"},
                 ]

@@ -25,7 +25,7 @@ class DatastoresValidator(BaseValidator):
     def base_template_for_autoupdate(self) -> dict[str, dict]:
         """Set Autoupdate templates in {file_path: content} format"""
         return {
-            f"{self.root_dir}/my_company.datastores.yaml": {
+            f"{self.base_dir_for_autoupdate()}/my_company.datastores.yaml": {
                 "schema": OPENDAPI_SPEC_URL.format(
                     version="0-0-1", entity="datastores"
                 ),

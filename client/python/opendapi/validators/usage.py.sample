@@ -1,0 +1,108 @@
+"""
+Sample script to run the validators.
+
+Run this script as part of CI/CD and pre-commit hooks to validate and autoupdate the DAPI files.
+
+"""
+
+from opendapi.validators.dapi import DapiValidator, PynamodbDapiValidator
+from opendapi.validators.datastores import DatastoresValidator
+from opendapi.validators.purposes import PurposesValidator
+from opendapi.validators.teams import TeamsValidator
+
+
+class MyTeamsValidator(TeamsValidator):
+    """Update your teams validator here"""
+
+    def base_template_for_autoupdate(self) -> dict[str, dict]:
+        """Update the base autoupdate template here"""
+
+    def custom_content_validations(self, file: str, content: dict):
+        """Any additional custom validations here"""
+
+
+class MyDatastoresValidator(DatastoresValidator):
+    """Update your datastores validator here"""
+
+    def base_template_for_autoupdate(self) -> dict[str, dict]:
+        """Update the base autoupdate template here"""
+
+    def custom_content_validations(self, file: str, content: dict):
+        """Any additional custom validations here"""
+
+
+class MyPurposesValidator(PurposesValidator):
+    """Update your purposes validator here"""
+
+    def base_template_for_autoupdate(self) -> dict[str, dict]:
+        """Update the base autoupdate template here"""
+
+    def custom_content_validations(self, file: str, content: dict):
+        """Any additional custom validations here"""
+
+
+class MyDapiValidator(DapiValidator):
+    """Update your dapi validator here"""
+
+    def base_template_for_autoupdate(self) -> dict[str, dict]:
+        """Update the base autoupdate template here"""
+
+    def custom_content_validations(self, file: str, content: dict):
+        """Any additional custom validations here"""
+
+
+class MyPyndodbDapiValidator(PynamodbDapiValidator):
+    """Update your pynamodb dapi validator"""
+
+    def get_pynamo_models(self):
+        """return a list of Pynamo model classes here"""
+
+    def build_datastores_for_model(self, model) -> dict:
+        return {
+            "producers": [
+                {
+                    "urn": "my_company.datastore.dynamodb",
+                    "data": {
+                        "identifier": model.Meta.table_name,
+                        "namespace": "sample_db.sample_schema",
+                    },
+                },
+            ],
+            "consumers": [
+                {
+                    "urn": "my_company.datastore.snowflake",
+                    "data": {
+                        "identifier": model.Meta.table_name,
+                        "namespace": "sample_db.sample_schema",
+                    },
+                },
+            ],
+        }
+
+    def build_owner_team_urn_for_model(self, model):
+        return f"my_company.sample.team.{model.Meta.table_name}"
+
+    def build_urn_for_model(self, model):
+        return f"my_company.sample.dataset.{model.Meta.table_name}"
+
+
+def main():
+    """Validator function"""
+    root_dir = "/path/to/root/dir"
+
+    validator_clss = [
+        MyTeamsValidator,
+        MyDatastoresValidator,
+        MyPurposesValidator,
+        MyDapiValidator,
+        MyPyndodbDapiValidator,
+    ]
+    for val_cls in validator_clss:
+        inst = val_cls(
+            root_dir=root_dir, enforce_existence=True, should_autoupdate=True
+        )
+        inst.run()
+
+
+if __name__ == "__main__":
+    main()

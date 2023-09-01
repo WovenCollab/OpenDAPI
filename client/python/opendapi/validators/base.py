@@ -59,6 +59,10 @@ class BaseValidator:
             self.SUFFIX
         )
 
+    def base_dir_for_autoupdate(self) -> str:
+        """Get the base directory for the spec files"""
+        return self.root_dir
+
     def _get_merger(self):
         """Get the merger object for deepmerge"""
 

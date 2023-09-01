@@ -7,7 +7,7 @@ on:
       - main
 
 jobs:
-  copy_specs:
+  copy_specs_and_ci:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout repository
@@ -16,5 +16,9 @@ jobs:
       uses: actions/setup-python@v4
       with:
         python-version: '3.10'
+
     - name: Run script
       run: python dev/version_specs.py
+
+    - name: Run python client CI/CD
+      run: make -C client/python ci

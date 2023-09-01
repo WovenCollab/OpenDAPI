@@ -1,4 +1,6 @@
 """Pytest configuration for the OpenDAPI Python client""" ""
+import os
+
 import pytest
 from pytest_mock import MockFixture
 
@@ -7,7 +9,7 @@ from pytest_mock import MockFixture
 @pytest.fixture
 def temp_directory(tmp_path):
     """Return a temporary directory"""
-    return tmp_path
+    return os.path.abspath(tmp_path)
 
 
 # Define mock responses for requests.get
