@@ -108,6 +108,14 @@ class BaseValidator:
             ["override"],
         )
 
+    def _assert_dapi_location_is_valid(self, dapi_location: str) -> None:
+        """Assert that the DAPI location is valid"""
+        if not dapi_location.startswith(self.base_dir_for_autoupdate()):
+            raise AssertionError(
+                "Dapi location must be in the base dir, "
+                "otherwise validator cannot find these files"
+            )
+
     def _get_files_for_suffix(self, suffixes: list[str]):
         """Get all files in the root directory with given suffixes"""
         files = []
@@ -170,6 +178,7 @@ class BaseValidator:
     def autoupdate(self):
         """Autocreate or update the files"""
         for file, base_content in self.base_template_for_autoupdate().items():
+            self._assert_dapi_location_is_valid(file)
             content = base_content
             if file in self.parsed_files:
                 content = self._get_merger().merge(content, self.parsed_files[file])

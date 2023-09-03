@@ -295,13 +295,13 @@ def test_autoupdate(temp_directory, mocker):
         temp_directory, enforce_existence=True, should_autoupdate=True
     )
     validator.parsed_files = {
-        "dummy.yaml": {
+        f"{temp_directory}/dummy.yaml": {
             "name": "dummy_new",
             "list": ["1", "2"],
             "listdict": [{"1": "one"}, {"2": "two"}],
             "listuniquedict": [{"name": "one"}, {"name": "one"}, {"name": "two"}],
         },
-        "dummy2.yaml": {
+        f"{temp_directory}/dummy2.yaml": {
             "name": "dummy2_new",
             "list": ["3"],
             "listdict": [
@@ -314,13 +314,13 @@ def test_autoupdate(temp_directory, mocker):
         validator,
         "base_template_for_autoupdate",
         return_value={
-            "dummy.yaml": {
+            f"{temp_directory}/dummy.yaml": {
                 "name": "dummy",
                 "list": ["1"],
                 "listdict": [{"1": "one"}],
                 "listuniquedict": [{"name": "one"}],
             },
-            "dummy2.yaml": {
+            f"{temp_directory}/dummy2.yaml": {
                 "name": "dummy2",
                 "list": ["2"],
                 "listdict": [{"2": "two"}],

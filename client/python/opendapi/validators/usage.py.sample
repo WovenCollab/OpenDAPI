@@ -4,11 +4,17 @@ Sample script to run the validators.
 Run this script as part of CI/CD and pre-commit hooks to validate and autoupdate the DAPI files.
 
 """
+import os
 
-from opendapi.validators.dapi import DapiValidator, PynamodbDapiValidator
+from opendapi.validators.dapi import DapiValidator, PynamodbDapiValidator, SqlAlchemyDapiValidator
 from opendapi.validators.datastores import DatastoresValidator
 from opendapi.validators.purposes import PurposesValidator
 from opendapi.validators.teams import TeamsValidator
+
+from opendapi.fixtures.sqlalchemy.core import metadata_obj
+from opendapi.fixtures.sqlalchemy.orm import Base
+
+from opendapi.fixtures.pynamodb.user import User, Post
 
 
 class MyTeamsValidator(TeamsValidator):
@@ -16,9 +22,11 @@ class MyTeamsValidator(TeamsValidator):
 
     def base_template_for_autoupdate(self) -> dict[str, dict]:
         """Update the base autoupdate template here"""
+        return super().base_template_for_autoupdate()
 
     def custom_content_validations(self, file: str, content: dict):
         """Any additional custom validations here"""
+        super().custom_content_validations(file, content)
 
 
 class MyDatastoresValidator(DatastoresValidator):
@@ -26,9 +34,11 @@ class MyDatastoresValidator(DatastoresValidator):
 
     def base_template_for_autoupdate(self) -> dict[str, dict]:
         """Update the base autoupdate template here"""
+        return super().base_template_for_autoupdate()
 
     def custom_content_validations(self, file: str, content: dict):
         """Any additional custom validations here"""
+        super().custom_content_validations(file, content)
 
 
 class MyPurposesValidator(PurposesValidator):
@@ -36,9 +46,11 @@ class MyPurposesValidator(PurposesValidator):
 
     def base_template_for_autoupdate(self) -> dict[str, dict]:
         """Update the base autoupdate template here"""
+        return super().base_template_for_autoupdate()
 
     def custom_content_validations(self, file: str, content: dict):
         """Any additional custom validations here"""
+        super().custom_content_validations(file, content)
 
 
 class MyDapiValidator(DapiValidator):
@@ -46,16 +58,19 @@ class MyDapiValidator(DapiValidator):
 
     def base_template_for_autoupdate(self) -> dict[str, dict]:
         """Update the base autoupdate template here"""
+        return super().base_template_for_autoupdate()
 
     def custom_content_validations(self, file: str, content: dict):
         """Any additional custom validations here"""
+        super().custom_content_validations(file, content)
 
 
-class MyPyndodbDapiValidator(PynamodbDapiValidator):
+class MyPynamodbDapiValidator(PynamodbDapiValidator):
     """Update your pynamodb dapi validator"""
 
     def get_pynamo_models(self):
         """return a list of Pynamo model classes here"""
+        return [User, Post]
 
     def build_datastores_for_model(self, model) -> dict:
         return {
@@ -86,16 +101,54 @@ class MyPyndodbDapiValidator(PynamodbDapiValidator):
         return f"my_company.sample.dataset.{model.Meta.table_name}"
 
 
+class MySqlAlchemyDapiValidator(SqlAlchemyDapiValidator):
+    def get_sqlalchemy_metadata_objects(self):
+        """Return a list of sqlalchemy metadata objects here"""
+        return [metadata_obj, Base.metadata]
+
+    def build_datastores_for_table(self, table):
+        return {
+            "producers": [
+                {
+                    "urn": "my_company.datastore.mysql",
+                    "data": {
+                        "identifier": table.name,
+                        "namespace": table.schema,
+                    },
+                },
+            ],
+            "consumers": [
+                {
+                    "urn": "my_company.datastore.snowflake",
+                    "data": {
+                        "identifier": table.name,
+                        "namespace": table.schema,
+                    }
+                }
+            ]
+        }
+
+    def build_owner_team_urn_for_table(self, table):
+        return f"my_company.sample.team.{table.name}"
+
+    def build_urn_for_table(self, table):
+        return f"my_company.sample.dataset.{table.name}"
+
+    def build_dapi_location_for_table(self, table):
+        return f"{self.base_dir_for_autoupdate()}/sqlalchemy/{table.name}.dapi.yaml"
+
+
 def main():
     """Validator function"""
-    root_dir = "/path/to/root/dir"
+    root_dir = os.getcwd().split('OpenDapi')[0] + '/OpenDapi'
 
     validator_clss = [
         MyTeamsValidator,
         MyDatastoresValidator,
         MyPurposesValidator,
         MyDapiValidator,
-        MyPyndodbDapiValidator,
+        MyPynamodbDapiValidator,
+        MySqlAlchemyDapiValidator,
     ]
     for val_cls in validator_clss:
         inst = val_cls(
