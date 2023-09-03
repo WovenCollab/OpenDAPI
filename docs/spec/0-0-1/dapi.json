@@ -61,7 +61,7 @@
         "data_type": {
           "type": "string",
           "description": "The data type of the field.",
-          "enum": ["string", "integer", "float", "boolean", "timestamp", "date", "binary", "json", "array", "object"]
+          "enum": ["string", "number", "integer", "float", "boolean", "timestamp", "date", "binary", "json", "array", "object", "null"]
         },
         "is_nullable": {
           "type": "boolean",

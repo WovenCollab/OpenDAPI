@@ -2,13 +2,13 @@
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "$id": "https://opendapi.org/spec/0-0-1/purposes.json",
     "$defs": {
-      "business_purpose": {
+      "purpose": {
         "type": "object",
         "properties": {
           "urn": {
             "type": "string",
             "examples": ["consumer_marketing", "fraud_analytics"],
-            "description": "The URN of the business purpose."
+            "description": "The URN of this purpose."
           },
           "description": {
             "type": "string",
@@ -28,15 +28,15 @@
         "description": "The URI schema version for this data",
         "examples": ["https://opendapi.org/spec/0-0-1/purposes.json"]
       },
-      "business_purposes": {
+      "purposes": {
         "type": "array",
         "items": {
-          "$ref": "#/$defs/business_purpose"
+          "$ref": "#/$defs/purpose"
         },
         "description": "List of business purposes"
       }
     },
-    "required": ["schema", "business_purposes"],
+    "required": ["schema", "purposes"],
     "title": "Business Purposes",
     "description": "Approved Business Purposes in this organization"
   }

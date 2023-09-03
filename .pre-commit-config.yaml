@@ -6,3 +6,8 @@ repos:
         entry: python dev/version_specs.py --ignore-missing
         language: python
         pass_filenames: false
+      - id: client-py-ci
+        name: client-py-ci
+        entry: make -C client/python precommit_ci
+        language: system
+        pass_filenames: false
