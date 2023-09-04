@@ -11,9 +11,9 @@ from opendapi.validators.datastores import DatastoresValidator
 from opendapi.validators.purposes import PurposesValidator
 from opendapi.validators.teams import TeamsValidator
 
+# same files from tests/fixtures
 from opendapi.fixtures.sqlalchemy.core import metadata_obj
 from opendapi.fixtures.sqlalchemy.orm import Base
-
 from opendapi.fixtures.pynamodb.user import User, Post
 
 
@@ -68,17 +68,17 @@ class MyDapiValidator(DapiValidator):
 class MyPynamodbDapiValidator(PynamodbDapiValidator):
     """Update your pynamodb dapi validator"""
 
-    def get_pynamo_models(self):
-        """return a list of Pynamo model classes here"""
+    def get_pynamo_tables(self):
+        """return a list of Pynamo table classes here"""
         return [User, Post]
 
-    def build_datastores_for_model(self, model) -> dict:
+    def build_datastores_for_table(self, table) -> dict:
         return {
             "producers": [
                 {
                     "urn": "my_company.datastore.dynamodb",
                     "data": {
-                        "identifier": model.Meta.table_name,
+                        "identifier": table.Meta.table_name,
                         "namespace": "sample_db.sample_schema",
                     },
                 },
@@ -87,18 +87,18 @@ class MyPynamodbDapiValidator(PynamodbDapiValidator):
                 {
                     "urn": "my_company.datastore.snowflake",
                     "data": {
-                        "identifier": model.Meta.table_name,
+                        "identifier": table.Meta.table_name,
                         "namespace": "sample_db.sample_schema",
                     },
                 },
             ],
         }
 
-    def build_owner_team_urn_for_model(self, model):
-        return f"my_company.sample.team.{model.Meta.table_name}"
+    def build_owner_team_urn_for_table(self, table):
+        return f"my_company.sample.team.{table.Meta.table_name}"
 
-    def build_urn_for_model(self, model):
-        return f"my_company.sample.dataset.{model.Meta.table_name}"
+    def build_urn_for_table(self, table):
+        return f"my_company.sample.dataset.{table.Meta.table_name}"
 
 
 class MySqlAlchemyDapiValidator(SqlAlchemyDapiValidator):
@@ -112,8 +112,8 @@ class MySqlAlchemyDapiValidator(SqlAlchemyDapiValidator):
                 {
                     "urn": "my_company.datastore.mysql",
                     "data": {
-                        "identifier": table.name,
-                        "namespace": table.schema,
+                        "identifier": str(table.name),
+                        "namespace": str(table.schema),
                     },
                 },
             ],
@@ -121,8 +121,8 @@ class MySqlAlchemyDapiValidator(SqlAlchemyDapiValidator):
                 {
                     "urn": "my_company.datastore.snowflake",
                     "data": {
-                        "identifier": table.name,
-                        "namespace": table.schema,
+                        "identifier": str(table.name),
+                        "namespace": str(table.schema),
                     }
                 }
             ]
@@ -140,7 +140,11 @@ class MySqlAlchemyDapiValidator(SqlAlchemyDapiValidator):
 
 def main():
     """Validator function"""
-    root_dir = os.getcwd().split('OpenDapi')[0] + '/OpenDapi'
+    root_dir = os.path.join(os.getcwd().split('OpenDapi')[0], 'OpenDapi')
+    # for sqlalchemy
+    os.mkdir(os.path.join(root_dir, 'sqlalchemy'))
+
+    errors = []
 
     validator_clss = [
         MyTeamsValidator,
@@ -154,8 +158,13 @@ def main():
         inst = val_cls(
             root_dir=root_dir, enforce_existence=True, should_autoupdate=True
         )
-        inst.run()
+        try:
+            inst.run()
+        except Exception as e:
+            errors.append(e)
 
+    if errors:
+        raise Exception(errors)
 
 if __name__ == "__main__":
     main()
