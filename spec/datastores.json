@@ -57,7 +57,7 @@
           ]
         }
       },
-      "oneOf": [
+      "anyOf": [
         {"required": ["location"]},
         {"required": ["location", "username", "password"]}
       ]
