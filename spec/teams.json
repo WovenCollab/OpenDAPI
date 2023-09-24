@@ -2,6 +2,28 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://opendapi.org/spec/0-0-1/teams.json",
   "$defs": {
+    "organization": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "examples": ["Acme Inc."],
+          "description": "The friendly name of the organization."
+        },
+        "slack_teams": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^T\\w+$",
+            "examples": ["T1234567890"],
+            "description": "The Slack team ID associated with the organization."
+          },
+          "description": "The Slack teams associated with the organization."
+        }
+      },
+      "required": ["name"],
+      "description": "Organization information."
+    },
     "team": {
       "type": "object",
       "properties": {
@@ -63,6 +85,10 @@
       "description": "The URI schema version for this data",
       "examples": ["https://opendapi.org/spec/0-0-1/teams.json"]
     },
+    "organization":{
+      "type": "object",
+      "$ref": "#/$defs/organization"
+    },
     "teams": {
       "type": "array",
       "items": {
@@ -71,7 +97,7 @@
       "description": "List of teams"
     }
   },
-  "required": ["schema", "teams"],
+  "required": ["schema", "organization", "teams"],
   "title": "Teams",
   "description": "Teams in the organization"
 }
