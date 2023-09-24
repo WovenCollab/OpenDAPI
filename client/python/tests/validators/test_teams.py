@@ -12,10 +12,12 @@ def test_collect_teams_urn(temp_directory, mocker):
         "opendapi.validators.base.BaseValidator._get_file_contents_for_suffix",
         return_value={
             f"{temp_directory}/my_company.teams.yaml": {
+                "schema": "https://opendapi.org/specs/0-0-1/teams.yaml",
+                "organization": {"name": "my_company", "slack_teams": ["T123456"]},
                 "teams": [
                     {"urn": "company.team_a"},
                     {"urn": "company.team_b"},
-                ]
+                ],
             }
         },
     )
@@ -34,6 +36,7 @@ def test_validate_parent_team_urn(temp_directory, mocker, mock_requests_get):
         return_value={
             f"{temp_directory}/my_company.teams.yaml": {
                 "schema": "https://opendapi.org/specs/0-0-1/teams.yaml",
+                "organization": {"name": "my_company", "slack_teams": ["T123456"]},
                 "teams": [
                     {"urn": "company.team_a", "parent_team_urn": "company.team_b"},
                     {"urn": "company.team_b"},
@@ -57,6 +60,7 @@ def test_validate_parent_team_urn_fails(temp_directory, mocker, mock_requests_ge
         return_value={
             f"{temp_directory}/my_company.teams.yaml": {
                 "schema": "https://opendapi.org/specs/0-0-1/teams.yaml",
+                "organization": {"name": "my_company", "slack_teams": ["T123456"]},
                 "teams": [
                     {"urn": "company.team_a", "parent_team_urn": "company.team_c"},
                     {"urn": "company.team_b"},

@@ -45,6 +45,7 @@ class TeamsValidator(BaseValidator):
         return {
             f"{self.base_dir_for_autoupdate()}/my_company.teams.yaml": {
                 "schema": OPENDAPI_SPEC_URL.format(version="0-0-1", entity="teams"),
+                "organization": {"name": "Company Name"},
                 "teams": [],
             }
         }
