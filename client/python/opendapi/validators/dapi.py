@@ -324,7 +324,7 @@ class SqlAlchemyDapiValidator(DapiValidator):
         for column in table.columns:
             fields.append(
                 {
-                    "name": column.name,
+                    "name": str(column.name),
                     "data_type": self._sqlalchemy_column_type_to_dapi_datatype(
                         column.type
                     ),
@@ -342,7 +342,7 @@ class SqlAlchemyDapiValidator(DapiValidator):
         primary_key = []
         for column in table.columns:
             if column.primary_key:
-                primary_key.append(column.name)
+                primary_key.append(str(column.name))
         return primary_key
 
     def build_dapi_location_for_table(self, table: "Table") -> str:
