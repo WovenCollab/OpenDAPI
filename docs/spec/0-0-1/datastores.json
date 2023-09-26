@@ -34,9 +34,9 @@
             },
             {
               "type": "string",
-              "pattern": "^aws_ssm:.+",
+              "pattern": "^arn:aws:secretsmanager:.+",
               "description": "The ARN of the secrets manager secret that contains the username for the datastore.",
-              "examples": ["aws_ssm:arn:aws:ssm:us-west-2:123456789012:parameter/MyParameter"]
+              "examples": ["arn:aws:secretsmanager:us-east-1:972019825782:secret:mydb/mydb_username"]
             }
           ]
         },
@@ -50,9 +50,10 @@
             },
             {
               "type": "string",
-              "pattern": "^aws_ssm:.+",
+              "pattern": "^arn:aws:secretsmanager:.+",
               "description": "The ARN of the secrets manager secret that contains the password for the datastore.",
-              "examples": ["aws_ssm:arn:aws:ssm:us-west-2:123456789012:parameter/MyParameter"]
+              "examples": ["arn:aws:secretsmanager:us-east-1:972019825782:secret:mydb/mydb_password"]
+             }
             }
           ]
         }
