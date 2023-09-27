@@ -79,16 +79,20 @@
         "host": {
           "type": "object",
           "description": "Details of the datastore host.",
-          "patternProperties":{
-            "default": {
+          "properties": {
+            "env_prod": {
               "$ref": "#/$defs/host",
-              "description": "Default host details for this datastore."
-            },
+              "description": "Production host details for this datastore."
+            }
+          },
+          "patternProperties":{
             "^env_": {
               "$ref": "#/$defs/host",
               "description": "Host details for a specific environment, e.g. env_prod, env_staging, env_dev, etc."
             }
-          }
+          },
+          "additionalProperties": false,
+          "required": ["env_prod"]
         }
       },
       "required": ["urn", "type", "host"],

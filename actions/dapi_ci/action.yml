@@ -1,0 +1,55 @@
+name: OpenDAPI CI Check
+description: Validate and Register OpenDAPI files against the DAPI Server
+
+inputs:
+  DAPI_SERVER_HOST:
+    description: 'DAPI Server Host'
+    required: True
+  DAPI_SERVER_API_KEY:
+    description: 'DAPI Server API Key'
+    required: True
+  MAINLINE_BRANCH_NAME:
+    description: 'The name of the Mainline Branch'
+    required: True
+    default: 'main'
+  REGISTER_ON_MERGE_TO_MAINLINE:
+    description: 'Should OpenDAPI files be registered on Merge to Mainline?'
+    required: True
+    default: True
+  SUGGEST_CHANGES:
+    description: 'Should we suggest changes powered by AI?'
+    default: False
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+
+    - name: Install OpenDAPI
+      shell: bash
+      run: |
+        sudo apt-get update
+        python3 -m venv .env
+        source .env/bin/activate
+        python -m pip install --upgrade pip
+        pip install git+https://github.com/WovenCollab/OpenDAPI.git@main#subdirectory=client/python
+
+    - name: Run DAPI CI
+      shell: bash
+      run: |
+        source .env/bin/activate
+        dapi_ci
+      env:
+        DAPI_SERVER_HOST: ${{ inputs.DAPI_SERVER_HOST }}
+        DAPI_SERVER_API_KEY: ${{ inputs.DAPI_SERVER_API_KEY }}
+        MAINLINE_BRANCH_NAME: ${{ inputs.MAINLINE_BRANCH_NAME }}
+        REGISTER_ON_MERGE_TO_MAINLINE: ${{ inputs.REGISTER_ON_MERGE_TO_MAINLINE }}
+        SUGGEST_CHANGES: ${{ inputs.SUGGEST_CHANGES }}
