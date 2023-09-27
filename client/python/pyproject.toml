@@ -28,3 +28,6 @@ sqlalchemy = "^2.0.0"
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.scripts]
+dapi_ci = "opendapi.scripts.dapi_ci:main"

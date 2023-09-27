@@ -3,20 +3,16 @@
 from opendapi.validators.purposes import PurposesValidator
 
 
-def test_collect_purposes_urn(temp_directory, mocker):
+def test_collect_purposes_urn(temp_directory, mocker, valid_purposes):
     """Test if the purpose urns are collected correctly"""
     mocker.patch(
         "opendapi.validators.base.BaseValidator._get_file_contents_for_suffix",
         return_value={
-            f"{temp_directory}/my_company.purposes.yaml": {
-                "purposes": [
-                    {"urn": "company.purpose_a"},
-                    {"urn": "company.purpose_b"},
-                ]
-            }
+            f"{temp_directory}/my_company.purposes.yaml": valid_purposes,
         },
     )
     purposes_validator = PurposesValidator(temp_directory)
+    purposes_validator.validate()
     assert purposes_validator.purposes_urn == [
         "company.purpose_a",
         "company.purpose_b",
