@@ -52,7 +52,7 @@
               "type": "string",
               "pattern": "^arn:aws:secretsmanager:.+",
               "description": "The ARN of the secrets manager secret that contains the password for the datastore.",
-              "examples": ["arn:aws:secretsmanager:us-east-1:xxxxxxx:secret:mydb/mydb_password"]
+              "examples": ["arn:aws:secretsmanager:us-east-1:xxxxx:secret:mydb/mydb_password"]
             }
           ]
         }
