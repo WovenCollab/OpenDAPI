@@ -1,4 +1,4 @@
-name: Check Specs Version
+name: OpenDAPI CI
 
 on:
   pull_request:
@@ -7,7 +7,7 @@ on:
       - main
 
 jobs:
-  copy_specs_and_ci:
+  ci:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout repository
@@ -17,7 +17,7 @@ jobs:
       with:
         python-version: '3.10'
 
-    - name: Run script
+    - name: Check specs versions
       run: python dev/version_specs.py
 
     - name: Run python client CI/CD

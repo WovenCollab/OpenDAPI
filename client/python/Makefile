@@ -13,7 +13,7 @@ requirements:
 test:
 	poetry run pytest -s -vv									\
 		--cov=${APP_PATH}										\
-		--cov-fail-under=100									 	\
+		--cov-fail-under=100									\
 		--cov-report=term-missing								\
 		--cov-report=html:coverage_html_report					\
 		$(TESTS_PATH)
