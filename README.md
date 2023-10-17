@@ -177,11 +177,11 @@ datastores:
       location: arn:aws:dynamodb:us-east-1:12345567
       # Credentials must be shared with your DAPI server AWS accounts
       username: aws_secretsmanager:arn:aws:secretsmanager:us-east-1:1234567:secret:prod/dynamodb/username-123
-      username: aws_secretsmanager:arn:aws:secretsmanager:us-east-1:1234567:secret:prod/dynamodb/pw-123
+      password: aws_secretsmanager:arn:aws:secretsmanager:us-east-1:1234567:secret:prod/dynamodb/pw-123
     env_dev:
       location: arn:aws:dynamodb:us-east-1:972019825782
       username: aws_secretsmanager:arn:aws:secretsmanager:us-east-1:1234567:secret:prod/dynamodb/username-123
-      username: aws_secretsmanager:arn:aws:secretsmanager:us-east-1:1234567:secret:prod/dynamodb/pw-123
+      password: aws_secretsmanager:arn:aws:secretsmanager:us-east-1:1234567:secret:prod/dynamodb/pw-123
 
 - urn: company.datastores.snowflake
   type: snowflake
@@ -189,7 +189,7 @@ datastores:
     env_prod:
       location: org-account.us-east-1.snowflakecomputing.com
       username: aws_secretsmanager:arn:aws:secretsmanager:us-east-1:1234567:secret:prod/dynamodb/username-123
-      username: aws_secretsmanager:arn:aws:secretsmanager:us-east-1:1234567:secret:prod/dynamodb/pw-123
+      password: aws_secretsmanager:arn:aws:secretsmanager:us-east-1:1234567:secret:prod/dynamodb/pw-123
 ```
 
 and a sample `company.purposes.yaml`,
