@@ -1,7 +1,7 @@
 # pylint: disable=protected-access,too-many-instance-attributes,invalid-name
 """Tests for Validation Runners"""
 import os
-from typing import Optional
+from typing import Dict, List, Optional
 
 import pytest
 
@@ -40,9 +40,9 @@ class TestRunner(Runner):
     ORG_SLACK_TEAM_ID: Optional[str] = None
 
     # Seed teams, datastores and purposes
-    SEED_TEAMS_NAMES: list[str] = []
-    SEED_DATASTORES_NAMES_WITH_TYPES: dict[str, str] = {}
-    SEED_PURPOSES_NAMES: list[str] = []
+    SEED_TEAMS_NAMES: List[str] = []
+    SEED_DATASTORES_NAMES_WITH_TYPES: Dict[str, str] = {}
+    SEED_PURPOSES_NAMES: List[str] = []
 
     # Setup DAPI Validators
     PYNAMODB_TABLES = []
@@ -130,7 +130,7 @@ def test_teams_validator_override():
     class CustomTeamsValidator(TeamsValidator):
         """Custom teams validator"""
 
-        def base_template_for_autoupdate(self) -> dict[str, dict]:
+        def base_template_for_autoupdate(self) -> Dict[str, Dict]:
             return {"custom": "template"}
 
     runner = TestRunner()
@@ -199,7 +199,7 @@ def test_datastores_validator_override():
     class CustomDatastoresValidator(DatastoresValidator):
         """Custom datastores validator"""
 
-        def base_template_for_autoupdate(self) -> dict[str, dict]:
+        def base_template_for_autoupdate(self) -> Dict[str, Dict]:
             return {"custom": "template"}
 
     runner = TestRunner()
@@ -254,7 +254,7 @@ def test_purposes_validator_override():
     class CustomPurposesValidator(PurposesValidator):
         """Custom purposes validator"""
 
-        def base_template_for_autoupdate(self) -> dict[str, dict]:
+        def base_template_for_autoupdate(self) -> Dict[str, dict]:
             return {"custom": "template"}
 
     runner = TestRunner()

@@ -1,6 +1,6 @@
 """DAPI validator module"""
 import inspect
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Dict, List
 from opendapi.defs import DAPI_SUFFIX, OPENDAPI_SPEC_URL, PLACEHOLDER_TEXT
 from opendapi.validators.base import BaseValidator, ValidationError
 
@@ -18,16 +18,16 @@ class DapiValidator(BaseValidator):
     SPEC_VERSION = "0-0-1"
 
     # Paths to disallow new entries when autoupdating
-    AUTOUPDATE_DISALLOW_NEW_ENTRIES_PATH: list[list[str]] = [["fields"]]
+    AUTOUPDATE_DISALLOW_NEW_ENTRIES_PATH: List[List[str]] = [["fields"]]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-    def _get_field_names(self, content: dict) -> list[str]:
+    def _get_field_names(self, content: dict) -> List[str]:
         """Get the field names"""
         return [field["name"] for field in content["fields"]]
 
-    def _validate_primary_key_is_a_valid_field(self, file: str, content: dict):
+    def _validate_primary_key_is_a_valid_field(self, file: str, content: Dict):
         """Validate if the primary key is a valid field"""
         primary_key = content.get("primary_key") or []
         field_names = self._get_field_names(content)
@@ -37,12 +37,12 @@ class DapiValidator(BaseValidator):
                     f"Primary key element {key} not a valid field in {file}"
                 )
 
-    def validate_content(self, file: str, content: dict):
+    def validate_content(self, file: str, content: Dict):
         """Validate the content of the files"""
         self._validate_primary_key_is_a_valid_field(file, content)
         super().validate_content(file, content)
 
-    def base_template_for_autoupdate(self) -> dict[str, dict]:
+    def base_template_for_autoupdate(self) -> Dict[str, Dict]:
         """Set Autoupdate templates in {file_path: content} format"""
         return {
             f"{self.base_dir_for_autoupdate()}/sample_dataset.dapi.yaml": {
@@ -139,11 +139,11 @@ class PynamodbDapiValidator(DapiValidator):
             return f"{self.base_dir_for_autoupdate()}/pynamodb/{table.Meta.table_name}.dapi.yaml"
     """
 
-    def get_pynamo_tables(self) -> list["Model"]:
+    def get_pynamo_tables(self) -> List["Model"]:
         """Get the Pynamo tables"""
         raise NotImplementedError
 
-    def build_datastores_for_table(self, table: "Model") -> dict:
+    def build_datastores_for_table(self, table: "Model") -> Dict:
         """Build the datastores for the table"""
         raise NotImplementedError
 
@@ -171,7 +171,7 @@ class PynamodbDapiValidator(DapiValidator):
         }
         return dynamo_to_dapi.get(dynamo_type) or dynamo_type
 
-    def build_fields_for_table(self, table: "Model") -> list[dict]:
+    def build_fields_for_table(self, table: "Model") -> List[Dict]:
         """Build the fields for the table"""
         attrs = table.get_attributes()
         fields = []
@@ -191,7 +191,7 @@ class PynamodbDapiValidator(DapiValidator):
         fields.sort(key=lambda x: x["name"])
         return fields
 
-    def build_primary_key_for_table(self, table: "Model") -> list[str]:
+    def build_primary_key_for_table(self, table: "Model") -> List[str]:
         """Build the primary key for the table"""
         attrs = table.get_attributes()
         primary_key = []
@@ -207,7 +207,7 @@ class PynamodbDapiValidator(DapiValidator):
         location = f"{module_dir}/{table.Meta.table_name.lower()}.dapi.yaml"
         return location
 
-    def base_template_for_autoupdate(self) -> dict[str, dict]:
+    def base_template_for_autoupdate(self) -> Dict[str, Dict]:
         result = {}
         for table in self.get_pynamo_tables():
             result[self.build_dapi_location_for_table(table)] = {
@@ -271,18 +271,18 @@ class SqlAlchemyDapiValidator(DapiValidator):
 
     """
 
-    def get_sqlalchemy_metadata_objects(self) -> list["MetaData"]:
+    def get_sqlalchemy_metadata_objects(self) -> List["MetaData"]:
         """Get the SQLAlchemy metadata objects"""
         raise NotImplementedError
 
-    def get_sqlalchemy_tables(self) -> list["Table"]:
+    def get_sqlalchemy_tables(self) -> List["Table"]:
         """Get the SQLAlchemy models"""
         tables = []
         for metadata in self.get_sqlalchemy_metadata_objects():
             tables.extend(metadata.sorted_tables)
         return tables
 
-    def build_datastores_for_table(self, table: "Table") -> dict:
+    def build_datastores_for_table(self, table: "Table") -> Dict:
         """Build the datastores for the table"""
         raise NotImplementedError
 
@@ -323,7 +323,7 @@ class SqlAlchemyDapiValidator(DapiValidator):
                 return sqlalchemy_to_dapi.get(key)
         return str(column_type)
 
-    def build_fields_for_table(self, table: "Table") -> list[dict]:
+    def build_fields_for_table(self, table: "Table") -> List[Dict]:
         """Build the fields for the table"""
         fields = []
         for column in table.columns:
@@ -342,7 +342,7 @@ class SqlAlchemyDapiValidator(DapiValidator):
         fields.sort(key=lambda x: x["name"])
         return fields
 
-    def build_primary_key_for_table(self, table: "Table") -> list[str]:
+    def build_primary_key_for_table(self, table: "Table") -> List[str]:
         """Build the primary key for the table"""
         primary_key = []
         for column in table.columns:
@@ -354,7 +354,7 @@ class SqlAlchemyDapiValidator(DapiValidator):
         """Build the relative path for the DAPI file"""
         return f"{self.base_dir_for_autoupdate()}/sqlalchemy/{table.name.lower()}.dapi.yaml"
 
-    def base_template_for_autoupdate(self) -> dict[str, dict]:
+    def base_template_for_autoupdate(self) -> Dict[str, Dict]:
         """Build the base template for autoupdate"""
         result = {}
         for table in self.get_sqlalchemy_tables():

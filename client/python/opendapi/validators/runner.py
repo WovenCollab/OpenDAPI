@@ -1,5 +1,5 @@
 """Runner for OpenDAPI validations"""
-from typing import Type, Optional, TYPE_CHECKING, Callable, Tuple
+from typing import Dict, List, Type, Optional, TYPE_CHECKING, Callable, Tuple
 
 from opendapi.defs import OPENDAPI_SPEC_URL, PLACEHOLDER_TEXT
 from opendapi.utils import find_subclasses_in_directory
@@ -39,12 +39,12 @@ class Runner:
     ORG_SLACK_TEAM_ID: Optional[str] = None
 
     # Seed teams, datastores and purposes
-    SEED_TEAMS_NAMES: list[str] = []
-    SEED_DATASTORES_NAMES_WITH_TYPES: dict[str, str] = {}
-    SEED_PURPOSES_NAMES: list[str] = []
+    SEED_TEAMS_NAMES: List[str] = []
+    SEED_DATASTORES_NAMES_WITH_TYPES: Dict[str, str] = {}
+    SEED_PURPOSES_NAMES: List[str] = []
 
     # Setup DAPI Validators
-    PYNAMODB_TABLES: list["Model"] = []
+    PYNAMODB_TABLES: List["Model"] = []
     PYNAMODB_TABLES_BASE_CLS: Optional[Type["Model"]] = None
     PYNAMODB_PRODUCER_DATASTORE_NAME: Optional[str] = None
     PYNAMODB_CONSUMER_SNOWFLAKE_DATASTORE_NAME: Optional[str] = None
@@ -52,8 +52,8 @@ class Runner:
         Callable[[str], Tuple[str, str]]
     ] = None
 
-    SQLALCHEMY_TABLES: list["Table"] = []
-    SQLALCHEMY_TABLES_METADATA_OBJECTS: list["MetaData"] = []
+    SQLALCHEMY_TABLES: List["Table"] = []
+    SQLALCHEMY_TABLES_METADATA_OBJECTS: List["MetaData"] = []
     SQLALCHEMY_PRODUCER_DATASTORE_NAME: Optional[str] = None
     SQLALCHEMY_CONSUMER_SNOWFLAKE_DATASTORE_NAME: Optional[str] = None
     SQLALCHEMY_CONSUMER_SNOWFLAKE_IDENTIFIER_MAPPER: Optional[
@@ -64,7 +64,7 @@ class Runner:
     OVERRIDE_TEAMS_VALIDATOR: Optional[Type[TeamsValidator]] = None
     OVERRIDE_DATASTORES_VALIDATOR: Optional[Type[DatastoresValidator]] = None
     OVERRIDE_PURPOSES_VALIDATOR: Optional[Type[PurposesValidator]] = None
-    ADDITIONAL_DAPI_VALIDATORS: list[Type[DapiValidator]] = []
+    ADDITIONAL_DAPI_VALIDATORS: List[Type[DapiValidator]] = []
 
     @property
     def root_dir(self) -> str:
@@ -89,7 +89,7 @@ class Runner:
 
             SPEC_VERSION = inst.DAPIS_VERSION
 
-            def base_template_for_autoupdate(self) -> dict[str, dict]:
+            def base_template_for_autoupdate(self) -> Dict[str, Dict]:
                 return {
                     f"{inst.dapis_dir}/{inst.ORG_NAME.lower()}.teams.yaml": {
                         "schema": OPENDAPI_SPEC_URL.format(
@@ -124,7 +124,7 @@ class Runner:
 
             SPEC_VERSION = inst.DAPIS_VERSION
 
-            def base_template_for_autoupdate(self) -> dict[str, dict]:
+            def base_template_for_autoupdate(self) -> Dict[str, Dict]:
                 return {
                     f"{inst.dapis_dir}/{inst.ORG_NAME}.datastores.yaml": {
                         "schema": OPENDAPI_SPEC_URL.format(
@@ -158,7 +158,7 @@ class Runner:
 
             SPEC_VERSION = inst.DAPIS_VERSION
 
-            def base_template_for_autoupdate(self) -> dict[str, dict]:
+            def base_template_for_autoupdate(self) -> Dict[str, Dict]:
                 return {
                     f"{inst.dapis_dir}/{inst.ORG_NAME}.purposes.yaml": {
                         "schema": OPENDAPI_SPEC_URL.format(
@@ -267,7 +267,7 @@ class Runner:
             def get_sqlalchemy_metadata_objects(self):
                 return inst.SQLALCHEMY_TABLES_METADATA_OBJECTS
 
-            def get_sqlalchemy_tables(self) -> list["Table"]:
+            def get_sqlalchemy_tables(self) -> List["Table"]:
                 if inst.SQLALCHEMY_TABLES:
                     return inst.SQLALCHEMY_TABLES
                 return super().get_sqlalchemy_tables()
