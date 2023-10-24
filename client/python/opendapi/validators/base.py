@@ -40,6 +40,8 @@ class BaseValidator:
     # Paths to disallow new entries when autoupdating
     AUTOUPDATE_DISALLOW_NEW_ENTRIES_PATH: list[list[str]] = []
 
+    SPEC_VERSION: str = NotImplemented
+
     def __init__(
         self,
         root_dir: str,

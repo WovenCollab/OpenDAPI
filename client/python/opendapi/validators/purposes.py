@@ -9,6 +9,7 @@ class PurposesValidator(BaseValidator):
     """
 
     SUFFIX = PURPOSES_SUFFIX
+    SPEC_VERSION = "0-0-1"
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -26,7 +27,9 @@ class PurposesValidator(BaseValidator):
         """Set Autoupdate templates in {file_path: content} format"""
         return {
             f"{self.base_dir_for_autoupdate()}/my_company.purposes.yaml": {
-                "schema": OPENDAPI_SPEC_URL.format(version="0-0-1", entity="purposes"),
+                "schema": OPENDAPI_SPEC_URL.format(
+                    version=self.SPEC_VERSION, entity="purposes"
+                ),
                 "purposes": [],
             }
         }

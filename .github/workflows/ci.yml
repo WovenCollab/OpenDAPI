@@ -9,13 +9,17 @@ on:
 jobs:
   ci:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        version: ['3.8', '3.10']
+
     steps:
     - name: Checkout repository
       uses: actions/checkout@v3
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
-        python-version: '3.10'
+        python-version: ${{ matrix.version }}
 
     - name: Check specs versions
       run: python dev/version_specs.py

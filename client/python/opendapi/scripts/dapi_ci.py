@@ -5,6 +5,8 @@ import os
 import subprocess  # nosec: B404
 import sys
 
+from typing import Optional
+
 from dataclasses import dataclass
 from urllib.parse import urljoin
 
@@ -23,7 +25,7 @@ class ChangeTriggerEvent:
     event_type: str
     before_change_sha: str
     after_change_sha: str
-    git_ref: str | None = None
+    git_ref: Optional[str] = None
 
 
 @dataclass
@@ -42,10 +44,10 @@ class DAPIServerResponse:
     """DAPI server Response formatted"""
 
     status_code: int
-    error: str | None = None
-    json: dict | None = None
-    text: str | None = None
-    markdown: str | None = None
+    error: Optional[str] = None
+    json: Optional[dict] = None
+    text: Optional[str] = None
+    markdown: Optional[str] = None
 
 
 @dataclass

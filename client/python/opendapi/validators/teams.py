@@ -9,6 +9,7 @@ class TeamsValidator(BaseValidator):
     """
 
     SUFFIX = TEAMS_SUFFIX
+    SPEC_VERSION = "0-0-1"
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -44,7 +45,9 @@ class TeamsValidator(BaseValidator):
         """Set Autoupdate templates in {file_path: content} format"""
         return {
             f"{self.base_dir_for_autoupdate()}/my_company.teams.yaml": {
-                "schema": OPENDAPI_SPEC_URL.format(version="0-0-1", entity="teams"),
+                "schema": OPENDAPI_SPEC_URL.format(
+                    version=self.SPEC_VERSION, entity="teams"
+                ),
                 "organization": {"name": "Company Name"},
                 "teams": [],
             }

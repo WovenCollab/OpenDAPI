@@ -9,6 +9,7 @@ class DatastoresValidator(BaseValidator):
     """
 
     SUFFIX = DATASTORES_SUFFIX
+    SPEC_VERSION = "0-0-1"
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -27,7 +28,7 @@ class DatastoresValidator(BaseValidator):
         return {
             f"{self.base_dir_for_autoupdate()}/my_company.datastores.yaml": {
                 "schema": OPENDAPI_SPEC_URL.format(
-                    version="0-0-1", entity="datastores"
+                    version=self.SPEC_VERSION, entity="datastores"
                 ),
                 "datastores": [],
             }

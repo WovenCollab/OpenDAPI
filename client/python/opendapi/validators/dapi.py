@@ -1,7 +1,7 @@
 """DAPI validator module"""
 import inspect
 from typing import TYPE_CHECKING
-from opendapi.defs import DAPI_SUFFIX, OPENDAPI_SPEC_URL
+from opendapi.defs import DAPI_SUFFIX, OPENDAPI_SPEC_URL, PLACEHOLDER_TEXT
 from opendapi.validators.base import BaseValidator, ValidationError
 
 if TYPE_CHECKING:
@@ -15,6 +15,7 @@ class DapiValidator(BaseValidator):
     """
 
     SUFFIX = DAPI_SUFFIX
+    SPEC_VERSION = "0-0-1"
 
     # Paths to disallow new entries when autoupdating
     AUTOUPDATE_DISALLOW_NEW_ENTRIES_PATH: list[list[str]] = [["fields"]]
@@ -45,7 +46,9 @@ class DapiValidator(BaseValidator):
         """Set Autoupdate templates in {file_path: content} format"""
         return {
             f"{self.base_dir_for_autoupdate()}/sample_dataset.dapi.yaml": {
-                "schema": OPENDAPI_SPEC_URL.format(version="0-0-1", entity="dapi"),
+                "schema": OPENDAPI_SPEC_URL.format(
+                    version=self.SPEC_VERSION, entity="dapi"
+                ),
                 "urn": "my_company.sample.dataset",
                 "type": "entity",
                 "description": "Sample dataset that shows how DAPI is created",
@@ -179,10 +182,10 @@ class PynamodbDapiValidator(DapiValidator):
                     "data_type": self._dynamo_type_to_dapi_datatype(
                         attribute.attr_type
                     ),
-                    "description": "",
+                    "description": PLACEHOLDER_TEXT,
                     "is_nullable": attribute.null,
-                    "is_pii": None,
-                    "share_status": None,
+                    "is_pii": True,
+                    "share_status": "unstable",
                 }
             )
         fields.sort(key=lambda x: x["name"])
@@ -208,10 +211,12 @@ class PynamodbDapiValidator(DapiValidator):
         result = {}
         for table in self.get_pynamo_tables():
             result[self.build_dapi_location_for_table(table)] = {
-                "schema": OPENDAPI_SPEC_URL.format(version="0-0-1", entity="dapi"),
+                "schema": OPENDAPI_SPEC_URL.format(
+                    version=self.SPEC_VERSION, entity="dapi"
+                ),
                 "urn": self.build_urn_for_table(table),
                 "type": "entity",
-                "description": "",
+                "description": PLACEHOLDER_TEXT,
                 "owner_team_urn": self.build_owner_team_urn_for_table(table),
                 "datastores": self.build_datastores_for_table(table),
                 "fields": self.build_fields_for_table(table),
@@ -328,10 +333,10 @@ class SqlAlchemyDapiValidator(DapiValidator):
                     "data_type": self._sqlalchemy_column_type_to_dapi_datatype(
                         column.type
                     ),
-                    "description": "",
+                    "description": PLACEHOLDER_TEXT,
                     "is_nullable": column.nullable,
-                    "is_pii": None,
-                    "share_status": None,
+                    "is_pii": True,
+                    "share_status": "unstable",
                 }
             )
         fields.sort(key=lambda x: x["name"])
@@ -354,10 +359,12 @@ class SqlAlchemyDapiValidator(DapiValidator):
         result = {}
         for table in self.get_sqlalchemy_tables():
             result[self.build_dapi_location_for_table(table)] = {
-                "schema": OPENDAPI_SPEC_URL.format(version="0-0-1", entity="dapi"),
+                "schema": OPENDAPI_SPEC_URL.format(
+                    version=self.SPEC_VERSION, entity="dapi"
+                ),
                 "urn": self.build_urn_for_table(table),
                 "type": "entity",
-                "description": "",
+                "description": PLACEHOLDER_TEXT,
                 "owner_team_urn": self.build_owner_team_urn_for_table(table),
                 "datastores": self.build_datastores_for_table(table),
                 "fields": self.build_fields_for_table(table),

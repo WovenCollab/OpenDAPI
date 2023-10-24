@@ -7,3 +7,5 @@ DAPI_SUFFIX = [".dapi.yaml", ".dapi.yml", ".dapi.json"]
 
 OPENDAPI_URL = "https://opendapi.org/"
 OPENDAPI_SPEC_URL = OPENDAPI_URL + "spec/{version}/{entity}.json"
+
+PLACEHOLDER_TEXT = "Placeholder - Please correct"
