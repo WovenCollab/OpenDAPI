@@ -1,4 +1,6 @@
 """Validator class for DAPI and related files"""
+from typing import Dict, List
+
 import glob
 import json
 import requests
@@ -17,7 +19,7 @@ class ValidationError(Exception):
 class MultiValidationError(ValidationError):
     """Exception raised for multiple validation errors"""
 
-    def __init__(self, errors: list[str], prefix_message: str = None):
+    def __init__(self, errors: List[str], prefix_message: str = None):
         self.errors = errors
         self.prefix_message = prefix_message
 
@@ -32,13 +34,15 @@ class MultiValidationError(ValidationError):
 class BaseValidator:
     """Base validator class for DAPI and related files"""
 
-    SUFFIX: list[str] = NotImplemented
+    SUFFIX: List[str] = NotImplemented
 
     # Keys to use for uniqueness check within a list of dicts when autoupdating
-    AUTOUPDATE_UNIQUE_LOOKUP_KEYS: list[str] = ["urn", "name"]
+    AUTOUPDATE_UNIQUE_LOOKUP_KEYS: List[str] = ["urn", "name"]
 
     # Paths to disallow new entries when autoupdating
-    AUTOUPDATE_DISALLOW_NEW_ENTRIES_PATH: list[list[str]] = []
+    AUTOUPDATE_DISALLOW_NEW_ENTRIES_PATH: List[List[str]] = []
+
+    SPEC_VERSION: str = NotImplemented
 
     def __init__(
         self,
@@ -55,7 +59,7 @@ class BaseValidator:
             raise ValueError(
                 "should_autoupdate cannot be True if enforce_existence is False"
             )
-        self.parsed_files: dict[str, dict] = self._get_file_contents_for_suffix(
+        self.parsed_files: Dict[str, Dict] = self._get_file_contents_for_suffix(
             self.SUFFIX
         )
 
@@ -116,14 +120,14 @@ class BaseValidator:
                 "otherwise validator cannot find these files"
             )
 
-    def _get_files_for_suffix(self, suffixes: list[str]):
+    def _get_files_for_suffix(self, suffixes: List[str]):
         """Get all files in the root directory with given suffixes"""
         files = []
         for suffix in suffixes:
             files += glob.glob(f"{self.root_dir}/**/*{suffix}", recursive=True)
         return files
 
-    def _get_file_contents_for_suffix(self, suffixes: list[str]):
+    def _get_file_contents_for_suffix(self, suffixes: List[str]):
         """Get the contents of all files in the root directory with given suffixes"""
         files = self._get_files_for_suffix(suffixes)
         contents = {}
@@ -144,7 +148,7 @@ class BaseValidator:
                 f"OpenDapi {self.__class__.__name__} error: No files found in {self.root_dir}"
             )
 
-    def validate_schema(self, file: str, content: dict):
+    def validate_schema(self, file: str, content: Dict):
         """Validate the yaml file for schema adherence"""
         if "schema" not in content:
             raise ValidationError(f"Schema not found in {file}")
@@ -171,7 +175,7 @@ class BaseValidator:
             error_message = f"Validation error for {file}: {str(exc)}"
             raise ValidationError(error_message) from exc
 
-    def base_template_for_autoupdate(self) -> dict[str, dict]:
+    def base_template_for_autoupdate(self) -> Dict[str, Dict]:
         """Set Autoupdate templates in {file_path: content} format"""
         raise NotImplementedError
 
@@ -186,10 +190,10 @@ class BaseValidator:
                 self.yaml.dump(content, file_handle)
         self.parsed_files = self._get_file_contents_for_suffix(self.SUFFIX)
 
-    def custom_content_validations(self, file: str, content: dict):
+    def custom_content_validations(self, file: str, content: Dict):
         """Custom content validations if any desired"""
 
-    def validate_content(self, file: str, content: dict):
+    def validate_content(self, file: str, content: Dict):
         """Validate the content of the files"""
         self.custom_content_validations(file, content)
 

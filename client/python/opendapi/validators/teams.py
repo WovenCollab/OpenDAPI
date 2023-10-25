@@ -1,4 +1,5 @@
 """Teams validator module"""
+from typing import Dict, List
 from opendapi.defs import TEAMS_SUFFIX, OPENDAPI_SPEC_URL
 from opendapi.validators.base import BaseValidator, ValidationError
 
@@ -9,12 +10,13 @@ class TeamsValidator(BaseValidator):
     """
 
     SUFFIX = TEAMS_SUFFIX
+    SPEC_VERSION = "0-0-1"
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.team_urns = self._collect_team_urns()
 
-    def _collect_team_urns(self) -> list[str]:
+    def _collect_team_urns(self) -> List[str]:
         """Collect all the team urns"""
         team_urns = []
         for _, content in self.parsed_files.items():
@@ -35,16 +37,18 @@ class TeamsValidator(BaseValidator):
                     f" not found in {team['urn']} in {file}"
                 )
 
-    def validate_content(self, file: str, content: dict):
+    def validate_content(self, file: str, content: Dict):
         """Validate the content of the files"""
         self._validate_parent_team_urn(file, content)
         super().validate_content(file, content)
 
-    def base_template_for_autoupdate(self) -> dict[str, dict]:
+    def base_template_for_autoupdate(self) -> Dict[str, Dict]:
         """Set Autoupdate templates in {file_path: content} format"""
         return {
             f"{self.base_dir_for_autoupdate()}/my_company.teams.yaml": {
-                "schema": OPENDAPI_SPEC_URL.format(version="0-0-1", entity="teams"),
+                "schema": OPENDAPI_SPEC_URL.format(
+                    version=self.SPEC_VERSION, entity="teams"
+                ),
                 "organization": {"name": "Company Name"},
                 "teams": [],
             }

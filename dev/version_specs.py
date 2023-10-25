@@ -73,6 +73,20 @@ def copy_specs_by_version(src_dir, dest_dir, allow_overwrite=False, ignore_missi
   if errors:
     raise ValueError("\n\n".join(errors))
 
+def list_files_in_markdown_file(dest_dir: str, markdown_file_name: str):
+  """List the files in the destination directory to a markdown file"""
+  with open(os.path.join(dest_dir, markdown_file_name), 'w') as file:
+    file.write("# OpenDAPI JSON Schema Specifications")
+    file.write("\n\n")
+    versions_list = os.listdir(dest_dir)
+    versions_list.sort(reverse=True)
+    for version in versions_list:
+      if os.path.isdir(os.path.join(dest_dir, version)):
+        file.write(f"## {version}\n\n")
+        for filename in os.listdir(os.path.join(dest_dir, version)):
+          if filename.endswith('.json'):
+            file.write(f"* [{filename}](./{version}/{filename})\n")
+
 if __name__ == "__main__":
   parser = argparse.ArgumentParser(description="Copy JSON schema specs by version.")
   parser.add_argument("--allow-overwrite", action="store_true",
@@ -87,3 +101,4 @@ if __name__ == "__main__":
   ignore_missing = args.ignore_missing
 
   copy_specs_by_version(src_directory, dest_directory, allow_overwrite, ignore_missing)
+  list_files_in_markdown_file(dest_directory, "index.md")

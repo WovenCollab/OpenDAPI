@@ -5,6 +5,8 @@ import os
 import subprocess  # nosec: B404
 import sys
 
+from typing import Dict, List, Optional
+
 from dataclasses import dataclass
 from urllib.parse import urljoin
 
@@ -23,7 +25,7 @@ class ChangeTriggerEvent:
     event_type: str
     before_change_sha: str
     after_change_sha: str
-    git_ref: str | None = None
+    git_ref: Optional[str] = None
 
 
 @dataclass
@@ -42,20 +44,20 @@ class DAPIServerResponse:
     """DAPI server Response formatted"""
 
     status_code: int
-    error: str | None = None
-    json: dict | None = None
-    text: str | None = None
-    markdown: str | None = None
+    error: Optional[str] = None
+    json: Optional[Dict] = None
+    text: Optional[str] = None
+    markdown: Optional[str] = None
 
 
 @dataclass
 class OpenDAPIFileContents:
     """Set of OpenDAPI files."""
 
-    teams: dict[str, dict]
-    dapis: dict[str, dict]
-    datastores: dict[str, dict]
-    purposes: dict[str, dict]
+    teams: Dict[str, Dict]
+    dapis: Dict[str, Dict]
+    datastores: Dict[str, Dict]
+    purposes: Dict[str, Dict]
     root_dir: str
 
     def contents_as_dict(self):
@@ -115,7 +117,7 @@ class DAPIServerAdapter:
     def get_all_opendapi_files(self) -> OpenDAPIFileContents:
         """Get files from the DAPI Server."""
 
-        result: dict[str, dict[str, dict]] = {}
+        result: Dict[str, Dict[str, Dict]] = {}
         for result_key, validator_cls in {
             "teams": TeamsValidator,
             "dapis": DapiValidator,
@@ -130,7 +132,7 @@ class DAPIServerAdapter:
         return OpenDAPIFileContents(**result, root_dir=self.repo_root_dir)
 
     @staticmethod
-    def git_diff_filenames(before_change_sha: str, after_change_sha: str) -> list[str]:
+    def git_diff_filenames(before_change_sha: str, after_change_sha: str) -> List[str]:
         """Get the list of files changed between two commits."""
         try:
             files = subprocess.check_output(
@@ -150,7 +152,7 @@ class DAPIServerAdapter:
 
         changed_files = self.git_diff_filenames(before_change_sha, after_change_sha)
 
-        result: dict[str, dict[str, dict]] = {}
+        result: Dict[str, Dict[str, Dict]] = {}
 
         for result_key, files in self.all_files.contents_as_dict().items():
             result[result_key] = {}

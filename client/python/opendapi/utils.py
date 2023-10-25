@@ -5,13 +5,13 @@ import importlib
 import inspect
 import logging
 import os
+from typing import List
 
 logger = logging.getLogger(__name__)
 
 
 def get_root_dir_fullpath(current_filepath: str, root_dir_name: str):
     """Get the full path of the root directory"""
-
     return os.path.join(
         f"/{root_dir_name}".join(
             os.path.dirname(os.path.abspath(current_filepath)).split(root_dir_name)[:-1]
@@ -21,7 +21,7 @@ def get_root_dir_fullpath(current_filepath: str, root_dir_name: str):
 
 
 def find_subclasses_in_directory(
-    root_dir: str, base_class, exclude_dirs: list[str] = None
+    root_dir: str, base_class, exclude_dirs: List[str] = None
 ):
     """Find subclasses of a base class in modules in a root_dir"""
     subclasses = []
