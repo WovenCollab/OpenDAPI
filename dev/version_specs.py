@@ -85,7 +85,7 @@ def list_files_in_markdown_file(dest_dir: str, markdown_file_name: str):
         file.write(f"## {version}\n\n")
         for filename in os.listdir(os.path.join(dest_dir, version)):
           if filename.endswith('.json'):
-            file.write(f"* [{filename}](/{version}/{filename})\n")
+            file.write(f"* [{filename}](./{version}/{filename})\n")
 
 if __name__ == "__main__":
   parser = argparse.ArgumentParser(description="Copy JSON schema specs by version.")

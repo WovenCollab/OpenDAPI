@@ -52,7 +52,7 @@ pip install git+https://github.com/WovenCollab/OpenDAPI.git@main#subdirectory=cl
 
 The library consists of validators that validate the OpenDAPI files against the specifications, and autoupdate them as your codebase and data models evolve.
 
-For a simple integration, you can leverage the pre-defined validators via the configurable `opendapi.validators.runner.Runner` classes. These validate teams (TeamsValidator), datstores (DatastoresValidator), purposes (PurposesValidator), DAPIs (DapiValidator), with special provisions for Pynamodb models (PynamodbValidator), and SqlAlchemy models (SqlAlchemyValidator). The `Runner` classes are designed to be [extensible](advanced.md) to support custom requirements and validators.
+For a simple integration, you can leverage the pre-defined validators via the configurable `opendapi.validators.runner.Runner` classes. These validate teams (TeamsValidator), datstores (DatastoresValidator), purposes (PurposesValidator), DAPIs (DapiValidator), with special provisions for Pynamodb models (PynamodbValidator), and SqlAlchemy models (SqlAlchemyValidator). The `Runner` classes are designed to be [extensible](./advanced.md) to support custom requirements and validators.
 
 The following is all you need to enable OpenDAPI for your repository. Add this to your testings suite, and run it as part of your CI/CD pipeline.
 
@@ -164,7 +164,7 @@ def test_and_autoupdate_dapis():
 
 ```
 
-If you'd like to customize the validators, you can do so by extending the `Runner` class and overriding the validators, or adding additional DAPI Validators for unsupported ORMs. See [advanced](advanced.md) for more details.
+If you'd like to customize the validators, you can do so by extending the `Runner` class and overriding the validators, or adding additional DAPI Validators for unsupported ORMs. See [advanced](./advanced.md) for more details.
 
 
 ## Connect to a DAPI server

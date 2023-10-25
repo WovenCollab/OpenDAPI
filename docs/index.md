@@ -18,7 +18,7 @@ The repo contains a collection of tools, clients and specifications to create DA
 
 The library helps with the goal to create a `DAPI` file for every dataset (e.g. `user.dapi.yaml`). DAPI files reference information from `teams`, `datastores` and `purposes` (e.g. `company.teams.yaml`), which are defined in their own files. A dataset can have only one DAPI file, but there can be many teams, datastores and purposes, and the tooling can help you manage them.
 
-The protocols for these DAPI, teams, datastores and purposes entities are available as [versioned JSONSchema specifications](/spec).
+The protocols for these DAPI, teams, datastores and purposes entities are available as [versioned JSONSchema specifications](./spec/index.md).
 
 
 ### 2. Connect to a DAPI server
@@ -30,13 +30,13 @@ The OpenDAPI library also provides clients, such as a Github Action, to connect 
 A DAPI server can be built by the organizations glueing together existing solutions on top of the foundation provided by OpenDAPI or, better, leverage a commercial product that extends the power of OpenDAPI, such as the **AI-native [Woven](https://wovencollab.com)**.
 
 ## Curious to learn more?
-- [Why DAPIs?](/background/index.md)
-- [What can DAPI Servers do?](/background/dapi-servers.md)
+- [Why DAPIs?](./background/index.md)
+- [What can DAPI Servers do?](./background/dapi-servers.md)
     - [What can Woven do for you?](https://wovencollab.com)
-- [OpenDAPI Specification](/spec/index.md)
+- [OpenDAPI Specification](./spec/index.md)
 
 
 ## Getting Started
-- [OpenDAPI Fundamentals](/usage/fundamentals.md)
-- [Quickstart](/usage/index.md)
-- [Advanced Usage](/usage/advanced.md)
+- [OpenDAPI Fundamentals](./usage/fundamentals.md)
+- [Quickstart](./usage/index.md)
+- [Advanced Usage](./usage/advanced.md)

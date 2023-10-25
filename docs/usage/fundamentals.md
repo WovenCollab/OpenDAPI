@@ -2,7 +2,7 @@
 
 Every dataset needs a DAPI file. Dataset is loosely defined and can be anything - entity, event or other package of information accessible in a storage system.
 
-DAPI files are language-agnostic and are usually named `<dataset>.dapi.yaml` or `<dataset>.dapi.json`. DAPI files are written in YAML or JSON, and are validated against the JSONSchema specification identified in the `schema` attribute. The specifications are available on [opendapi.org](/spec/index.md).
+DAPI files are language-agnostic and are usually named `<dataset>.dapi.yaml` or `<dataset>.dapi.json`. DAPI files are written in YAML or JSON, and are validated against the JSONSchema specification identified in the `schema` attribute. The specifications are available on [opendapi.org](../spec/index.md).
 
 ## Examples
 ### DAPI
@@ -77,9 +77,9 @@ primary_key:
 ```
 
 Every DAPI has its `URN` to uniquely identify within an organization, and it also references three other URNs:
-- `owner_team_urn` - The team that owns this dataset and maps to a `company.teams.yaml` or `company.teams.json` file and adheres to the [teams specification](https://opendapi.org/spec/0-0-1/teams.json)
-- `datastores URN` - The datastore where this dataset is created and consumed from, and maps to a `company.datastores.yaml` file, adhering to the [datastores specification](https://opendapi.org/spec/0-0-1/datastores.json)
-- `business_purposes URN` - The business purposes for which this dataset is used, and maps to a `company.purposes.yaml` file, adhering to the [purposes specification](https://opendapi.org/spec/0-0-1/purposes.json)
+- `owner_team_urn` - The team that owns this dataset and maps to a `company.teams.yaml` or `company.teams.json` file and adheres to the [teams specification](../spec/0-0-1/teams.json)
+- `datastores URN` - The datastore where this dataset is created and consumed from, and maps to a `company.datastores.yaml` file, adhering to the [datastores specification](../spec/0-0-1/datastores.json)
+- `business_purposes URN` - The business purposes for which this dataset is used, and maps to a `company.purposes.yaml` file, adhering to the [purposes specification](../spec/0-0-1/purposes.json)
 
 
 ### Teams
