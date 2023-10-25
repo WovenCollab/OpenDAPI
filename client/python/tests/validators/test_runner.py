@@ -1,4 +1,4 @@
-# pylint: disable=protected-access,too-many-instance-attributes,invalid-name
+# pylint: disable=protected-access,too-many-instance-attributes,invalid-name,unnecessary-lambda-assignment
 """Tests for Validation Runners"""
 import os
 from typing import Dict, List, Optional
@@ -307,15 +307,19 @@ def test_pynamodb_dapi_validator_with_base_class(mocker):
 
 def test_pynamodb_dapi_validator_with_base_class_enriched(mocker):
     """Test pynamodb dapi validator with base class and additional configurations"""
-    runner = TestRunner()
-    runner.PYNAMODB_TABLES_BASE_CLS = mocker.MagicMock()
-    runner.PYNAMODB_PRODUCER_DATASTORE_NAME = "ds1"
-    runner.PYNAMODB_CONSUMER_SNOWFLAKE_DATASTORE_NAME = "ds2"
-    runner.PYNAMODB_CONSUMER_SNOWFLAKE_IDENTIFIER_MAPPER = lambda table_name: (
-        "schema",
-        f"snowflake_{table_name}",
-    )
 
+    class UpdatedTestRunner(TestRunner):
+        """Test runner with additional configurations"""
+
+        PYNAMODB_TABLES_BASE_CLS = mocker.MagicMock()
+        PYNAMODB_PRODUCER_DATASTORE_NAME = "ds1"
+        PYNAMODB_CONSUMER_SNOWFLAKE_DATASTORE_NAME = "ds2"
+        PYNAMODB_CONSUMER_SNOWFLAKE_IDENTIFIER_MAPPER = lambda self, table_name: (
+            "schema",
+            f"snowflake_{table_name}",
+        )
+
+    runner = UpdatedTestRunner()
     m_pynamodb_table = mocker.MagicMock()
     m_pynamodb_table.Meta.table_name = "my_table"
     mocker.patch(
@@ -426,20 +430,24 @@ def test_sqlalchemy_dapi_validator_with_metadata_objects(mocker):
 
 def test_sqlalchemy_dapi_validator_with_metadata_objects_enriched(mocker):
     """Test sqlalchemy dapi validator with metadata objects"""
-    runner = TestRunner()
     m_sqlalchemy_metadata_objs = mocker.MagicMock()
-    runner.SQLALCHEMY_TABLES_METADATA_OBJECTS = [m_sqlalchemy_metadata_objs]
     m_sqlalchemy_table = mocker.MagicMock()
     m_sqlalchemy_metadata_objs.sorted_tables = [m_sqlalchemy_table]
     m_sqlalchemy_table.name = "my_table"
     m_sqlalchemy_table.schema = "my_schema"
 
-    runner.SQLALCHEMY_PRODUCER_DATASTORE_NAME = "ds1"
-    runner.SQLALCHEMY_CONSUMER_SNOWFLAKE_DATASTORE_NAME = "ds2"
-    runner.SQLALCHEMY_CONSUMER_SNOWFLAKE_IDENTIFIER_MAPPER = lambda table_name: (
-        "schema",
-        f"snowflake_{table_name}",
-    )
+    class UpdatedTestRunner(TestRunner):
+        """Test runner with overridden config"""
+
+        SQLALCHEMY_TABLES_METADATA_OBJECTS = [m_sqlalchemy_metadata_objs]
+        SQLALCHEMY_PRODUCER_DATASTORE_NAME = "ds1"
+        SQLALCHEMY_CONSUMER_SNOWFLAKE_DATASTORE_NAME = "ds2"
+        SQLALCHEMY_CONSUMER_SNOWFLAKE_IDENTIFIER_MAPPER = lambda self, table_name: (
+            "schema",
+            f"snowflake_{table_name}",
+        )
+
+    runner = UpdatedTestRunner()
     validator = runner._sqlalchemy_dapi_validator(runner)
     assert issubclass(validator, SqlAlchemyDapiValidator)
     template = validator(runner.root_dir).base_template_for_autoupdate()

@@ -49,7 +49,7 @@ class Runner:
     PYNAMODB_PRODUCER_DATASTORE_NAME: Optional[str] = None
     PYNAMODB_CONSUMER_SNOWFLAKE_DATASTORE_NAME: Optional[str] = None
     PYNAMODB_CONSUMER_SNOWFLAKE_IDENTIFIER_MAPPER: Optional[
-        Callable[[str], Tuple[str, str]]
+        Callable[["Runner", str], Tuple[str, str]]
     ] = None
 
     SQLALCHEMY_TABLES: List["Table"] = []
@@ -57,7 +57,7 @@ class Runner:
     SQLALCHEMY_PRODUCER_DATASTORE_NAME: Optional[str] = None
     SQLALCHEMY_CONSUMER_SNOWFLAKE_DATASTORE_NAME: Optional[str] = None
     SQLALCHEMY_CONSUMER_SNOWFLAKE_IDENTIFIER_MAPPER: Optional[
-        Callable[[str], Tuple[str, str]]
+        Callable[["Runner", str], Tuple[str, str]]
     ] = None
 
     # Advanced Configuration
