@@ -126,7 +126,7 @@ class Runner:
 
             def base_template_for_autoupdate(self) -> Dict[str, Dict]:
                 return {
-                    f"{inst.dapis_dir}/{inst.ORG_NAME}.datastores.yaml": {
+                    f"{inst.dapis_dir}/{inst.ORG_NAME.lower()}.datastores.yaml": {
                         "schema": OPENDAPI_SPEC_URL.format(
                             version=inst.DAPIS_VERSION, entity="datastores"
                         ),
@@ -137,8 +137,6 @@ class Runner:
                                 "host": {
                                     "env_prod": {
                                         "location": PLACEHOLDER_TEXT,
-                                        "username": f"plaintext:{PLACEHOLDER_TEXT}",
-                                        "password": f"plaintext:{PLACEHOLDER_TEXT}",
                                     },
                                 },
                             }

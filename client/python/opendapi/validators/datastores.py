@@ -20,8 +20,8 @@ class DatastoresValidator(BaseValidator):
         """Collect all the datastores urns"""
         datastores_urn = []
         for _, content in self.parsed_files.items():
-            for purpose in content["datastores"]:
-                datastores_urn.append(purpose["urn"])
+            for datastore in content["datastores"]:
+                datastores_urn.append(datastore["urn"])
         return datastores_urn
 
     def base_template_for_autoupdate(self) -> Dict[str, Dict]:

@@ -173,8 +173,6 @@ def test_datastores_validator_default_configured():
                 "host": {
                     "env_prod": {
                         "location": PLACEHOLDER_TEXT,
-                        "password": f"plaintext:{PLACEHOLDER_TEXT}",
-                        "username": f"plaintext:{PLACEHOLDER_TEXT}",
                     }
                 },
             },
@@ -184,8 +182,6 @@ def test_datastores_validator_default_configured():
                 "host": {
                     "env_prod": {
                         "location": PLACEHOLDER_TEXT,
-                        "password": f"plaintext:{PLACEHOLDER_TEXT}",
-                        "username": f"plaintext:{PLACEHOLDER_TEXT}",
                     }
                 },
             },
