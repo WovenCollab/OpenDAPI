@@ -173,7 +173,9 @@ The final step is to connect your Github repo(s) to a DAPI server via Github Act
 
 Check out [Woven](https://wovencollab.com) for a hosted DAPI server. Sign up to get your API key for this Github Action. Woven provides AI-powered suggestions for your DAPIs at development time, and helps document and classify your datasets.
 
-To use this action, add the following to your repo's `.github/workflows/opendapi_ci.yml` file:
+To use this action,
+1. In your Github settings, allow GitHub Actions to create pull requests. This setting can be found in a repository's settings under Actions > General > Workflow permissions. For repositories belonging to an organization, this setting can be managed by admins in organization settings under Actions > General > Workflow permissions.
+2. Then, add the following to your repo's `.github/workflows/opendapi_ci.yml` file:
 
 
 ```yaml
@@ -185,6 +187,12 @@ on:
     branches:
       - 'main'
 
+# Allows this action to create PRs to suggest DAPI improvements
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
 jobs:
   run:
     runs-on: ubuntu-latest
@@ -195,9 +203,8 @@ jobs:
         # Store credentials in Github Repo secrets
         DAPI_SERVER_HOST: https://api.wovencollab.com
         DAPI_SERVER_API_KEY: ${{ secrets.DAPI_SERVER_API_KEY }}
-
         # Configure when DAPIs should be registered.
-        # PRs do not register but only validate
+        # PRs do not register but only validate and provide suggestions
         MAINLINE_BRANCH_NAME: "main"
         REGISTER_ON_MERGE_TO_MAINLINE: True
 ```

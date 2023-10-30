@@ -10,6 +10,7 @@ from opendapi.scripts.dapi_ci import (
     ChangeTriggerEvent,
     DAPIServerConfig,
     DAPIServerAdapter,
+    DAPIServerResponse,
     OpenDAPIFileContents,
     main,
 )
@@ -39,6 +40,7 @@ def fixture_sample_dapi_ci_trigger_push():
         before_change_sha="before_sha",
         after_change_sha="after_sha",
         git_ref="refs/heads/main",
+        repo_api_url='https://github.com/opendapi',
     )
 
 
@@ -50,6 +52,7 @@ def fixture_sample_dapi_ci_trigger_pull_request():
         before_change_sha="before_sha",
         after_change_sha="after_sha",
         git_ref="refs/pull/1/merge",
+        repo_api_url='https://github.com/opendapi',
     )
 
 
@@ -124,6 +127,9 @@ def setup(mocker, temp_directory):
             "before": "before_sha",
             "after": "after_sha",
             "ref": "refs/heads/main",
+            "repository": {
+                "url": "https://github.com/opendapi",
+            }
         },
     )
     mocker.patch(
@@ -133,6 +139,54 @@ def setup(mocker, temp_directory):
         ),
     )
     yield
+
+def test_dapi_server_response():
+    info = {'loc_1': 'info_1', 'loc_2': 'info_2'}
+    suggestions = {'loc_1': 'suggestion_1', 'loc_2': 'suggestion_2'}
+    errors = {'loc_1': 'error_1', 'loc_2': 'error_2'}
+    response = DAPIServerResponse(
+        status_code=200,
+        error=True,
+        text="error message",
+        markdown="markdown message",
+        json={
+            "info": info,
+            "suggestions": suggestions,
+            'errors': errors
+        }
+    )
+    assert response.status_code == 200
+    assert response.errors == errors
+    assert response.info == info
+    assert response.suggestions == suggestions
+
+    other_info = {'loc_3': 'info_3'}
+    other_suggestions = {'loc_3': 'suggestion_3'}
+    other_errors = {'loc_3': 'error_3'}
+    other_response = DAPIServerResponse(
+        status_code=404,
+        error=False,
+        text="error message2",
+        markdown="markdown message",
+        json={
+            "info": other_info,
+            "suggestions": other_suggestions,
+            'errors': other_errors
+        }
+    )
+    merged_response = response.merge(other_response)
+    assert merged_response.status_code == 404
+    # OR of errors
+    assert merged_response.error is True
+
+    # merge dicts of errors, info, suggestions
+    assert merged_response.errors == {**errors, **other_errors}
+    assert merged_response.info == {**info, **other_info}
+    assert merged_response.suggestions == {**suggestions, **other_suggestions}
+    # if messages are equal, just show once
+    assert merged_response.markdown == "markdown message"
+    # if messages are different, show both
+    assert merged_response.text == "error message\n\nerror message2"
 
 
 def test_dapi_server_adapter_init(
@@ -227,6 +281,7 @@ def test_dapi_server_adapter_validate(
     with mock.patch("requests.post") as mock_post:
         mock_post.return_value.status_code = 200
         mock_post.return_value.json.return_value = {
+            "text": "Validation successful",
             "md": "Validation successful",
             "json": {"success": True},
         }
@@ -415,11 +470,13 @@ def test_dapi_server_adapter_run(
     with mock.patch("requests.post") as mock_post:
         mock_post.return_value.status_code = 200
         mock_post.return_value.json.return_value = {
+            "text": "Validation successful",
             "md": "Validation successful",
             "json": {"success": True},
         }
 
         adapter.run()
+        # a call each to validate, register, analyze_impact, retrieve_stats,
         assert mock_post.call_count == 4
 
 
