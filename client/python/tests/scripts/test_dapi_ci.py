@@ -3,6 +3,7 @@
 import os
 import subprocess
 from unittest import mock
+from typing import Dict, Tuple
 
 import pytest
 
@@ -29,18 +30,21 @@ def fixture_sample_dapi_ci_server_config():
         mainline_branch_name="main",
         register_on_merge_to_mainline=True,
         suggest_changes=True,
+        display_dapi_stats=True,
+        validate_dapi_individually=True,
     )
 
 
 @pytest.fixture(name="sample_dapi_ci_trigger_push")
-def fixture_sample_dapi_ci_trigger_push():
+def fixture_sample_dapi_ci_trigger_push(mocker):
     """Return a sample DAPI CI trigger event"""
     return ChangeTriggerEvent(
         event_type="push",
         before_change_sha="before_sha",
         after_change_sha="after_sha",
+        repo_api_url="https://github.com/opendapi",
+        repo_owner="opendapi",
         git_ref="refs/heads/main",
-        repo_api_url='https://github.com/opendapi',
     )
 
 
@@ -51,8 +55,10 @@ def fixture_sample_dapi_ci_trigger_pull_request():
         event_type="pull_request",
         before_change_sha="before_sha",
         after_change_sha="after_sha",
+        repo_api_url="https://github.com/opendapi",
+        repo_owner="opendapi",
         git_ref="refs/pull/1/merge",
-        repo_api_url='https://github.com/opendapi',
+        pull_request_number=123,
     )
 
 
@@ -103,9 +109,98 @@ def fixture_sample_opendapi_file_contents(
     )
 
 
+def mock_event(mocker, event_type: str):
+    """Mock the event"""
+    # update os.environ
+    os.environ["GITHUB_EVENT_NAME"] = event_type
+
+    event_json = {
+        "event_name": event_type,
+        "repository": {
+            "url": "https://github.com/opendapi",
+            "owner": {"login": "opendapi"},
+        },
+    }
+    if event_type == "push":
+        event_json.update(
+            {
+                "before": "before_sha",
+                "after": "after_sha",
+                "ref": "refs/heads/main",
+            }
+        )
+    else:
+        event_json.update(
+            {
+                "pull_request": {
+                    "number": 123,
+                    "base": {
+                        "ref": "main",
+                        "sha": "before_sha",
+                    },
+                    "head": {
+                        "ref": "feature-branch",
+                        "sha": "after_sha",
+                    },
+                }
+            }
+        )
+    mocker.patch("json.load", return_value=event_json)
+    return event_json
+
+
+def mock_open(mocker, file_contents: str = ""):
+    """Mock open().read()"""
+    m_open = mocker.mock_open(read_data=file_contents)
+    mocker.patch("builtins.open", m_open)
+    return m_open
+
+
+def mock_requests(
+    mocker, method: str, response_by_path_suffix: Dict[str, Tuple[int, Dict]]
+):
+    """Mock requests.post()"""
+
+    def _get_response_for_path_suffix(url, *_, **unused):
+        """Return a response for the given path suffix"""
+        print(url)
+        for path_suffix, response_tuple in response_by_path_suffix.items():
+            if url.endswith(path_suffix):
+                status_code = response_tuple[0]
+                response_json = response_tuple[1]
+                m_response = mocker.MagicMock()
+                m_response.status_code = status_code
+                m_response.json.return_value = response_json
+                return m_response
+        raise ValueError(f"No mock response found for url: {url}")
+
+    m_requests = mocker.MagicMock()
+    m_requests.side_effect = _get_response_for_path_suffix
+    mocker.patch(f"requests.{method}", m_requests)
+    return m_requests
+
+
+def mock_subprocess_check_output(mocker, cmd_prefix_to_response: Dict[str, str]):
+    """Mock subprocess.check_output()"""
+
+    def _get_response_for_cmd_prefix(cmd, *_, **unused):
+        """Return a response for the given cmd prefix"""
+        cmd_prefix = " ".join(cmd[:2])
+        for key, response in cmd_prefix_to_response.items():
+            if key == cmd_prefix:
+                return response
+        return b""
+
+    m_subprocess = mocker.MagicMock()
+    m_subprocess.side_effect = _get_response_for_cmd_prefix
+    mocker.patch("subprocess.check_output", m_subprocess)
+    return m_subprocess
+
+
 @pytest.fixture(autouse=True)
 def setup(mocker, temp_directory):
     """Mock some things"""
+    event_name = "push"
     mocker.patch.dict(
         os.environ,
         {
@@ -114,55 +209,47 @@ def setup(mocker, temp_directory):
             "MAINLINE_BRANCH_NAME": "main",
             "REGISTER_ON_MERGE_TO_MAINLINE": "True",
             "SUGGEST_CHANGES": "True",
-            "GITHUB_EVENT_NAME": "push",
+            "GITHUB_EVENT_NAME": event_name,
             "GITHUB_WORKSPACE": "/path/to/repo",
             "GITHUB_EVENT_PATH": f"{temp_directory}/trigger_event.json",
             "GITHUB_STEP_SUMMARY": f"{temp_directory}/output.txt",
+            "GITHUB_TOKEN": "your-github-token",
         },
     )
-    mocker.patch(
-        "json.load",
-        return_value={
-            "event_name": "push",
-            "before": "before_sha",
-            "after": "after_sha",
-            "ref": "refs/heads/main",
-            "repository": {
-                "url": "https://github.com/opendapi",
-            }
+
+    mock_event(mocker, event_name)
+    mock_subprocess_check_output(
+        mocker,
+        {
+            "git diff": b"2.dapi.yaml\n2.teams.yaml\n"
+            b"2.datastores.yaml\n2.purposes.yaml\n",
+            "git rev-parse": b"current_branch",
+            "git status": b"something",
         },
-    )
-    mocker.patch(
-        "subprocess.check_output",
-        return_value=(
-            b"2.dapi.yaml\n2.teams.yaml\n" b"2.datastores.yaml\n2.purposes.yaml\n"
-        ),
     )
     yield
 
+
 def test_dapi_server_response():
-    info = {'loc_1': 'info_1', 'loc_2': 'info_2'}
-    suggestions = {'loc_1': 'suggestion_1', 'loc_2': 'suggestion_2'}
-    errors = {'loc_1': 'error_1', 'loc_2': 'error_2'}
+    """Test DapiServerResponse functionality"""
+    info = {"loc_1": "info_1", "loc_2": "info_2"}
+    suggestions = {"loc_1": "suggestion_1", "loc_2": "suggestion_2"}
+    errors = {"loc_1": "error_1", "loc_2": "error_2"}
     response = DAPIServerResponse(
         status_code=200,
         error=True,
         text="error message",
         markdown="markdown message",
-        json={
-            "info": info,
-            "suggestions": suggestions,
-            'errors': errors
-        }
+        json={"info": info, "suggestions": suggestions, "errors": errors},
     )
     assert response.status_code == 200
     assert response.errors == errors
     assert response.info == info
     assert response.suggestions == suggestions
 
-    other_info = {'loc_3': 'info_3'}
-    other_suggestions = {'loc_3': 'suggestion_3'}
-    other_errors = {'loc_3': 'error_3'}
+    other_info = {"loc_3": "info_3"}
+    other_suggestions = {"loc_3": "suggestion_3"}
+    other_errors = {"loc_3": "error_3"}
     other_response = DAPIServerResponse(
         status_code=404,
         error=False,
@@ -171,8 +258,8 @@ def test_dapi_server_response():
         json={
             "info": other_info,
             "suggestions": other_suggestions,
-            'errors': other_errors
-        }
+            "errors": other_errors,
+        },
     )
     merged_response = response.merge(other_response)
     assert merged_response.status_code == 404
@@ -224,9 +311,16 @@ def test_dapi_server_adapter_should_register(
     assert adapter.should_register() is False
 
 
-def test_dapi_server_adapter_git_diff_filenames(mocker):
+def test_dapi_server_adapter_git_diff_filenames(
+    mocker, sample_dapi_ci_server_config, sample_dapi_ci_trigger_pull_request
+):
     """Test DAPIServerAdapter.git_diff_filenames"""
-    filenames = DAPIServerAdapter.git_diff_filenames("before_sha", "after_sha")
+    adapter = DAPIServerAdapter(
+        repo_root_dir="/path/to/repo",
+        dapi_server_config=sample_dapi_ci_server_config,
+        trigger_event=sample_dapi_ci_trigger_pull_request,
+    )
+    filenames = adapter.git_diff_filenames("before_sha", "after_sha")
     assert filenames == [
         "2.dapi.yaml",
         "2.teams.yaml",
@@ -240,7 +334,7 @@ def test_dapi_server_adapter_git_diff_filenames(mocker):
         side_effect=subprocess.CalledProcessError(0, "Something went wrong"),
     )
     with pytest.raises(SystemExit):
-        DAPIServerAdapter.git_diff_filenames("before_sha", "after_sha")
+        adapter.git_diff_filenames("before_sha", "after_sha")
 
 
 def test_dapi_server_adapter_get_changed_opendapi_files(
@@ -266,12 +360,85 @@ def test_dapi_server_adapter_get_changed_opendapi_files(
     assert "/path/to/repo/2.purposes.yaml" in changed_files.purposes
 
 
+def test_ask_github_handles_400s(mocker):
+    """Test DAPIServerAdapter.ask_github handles 400s"""
+    adapter = DAPIServerAdapter(
+        repo_root_dir="/path/to/repo",
+        dapi_server_config=mock.MagicMock(),
+        trigger_event=mock.MagicMock(),
+    )
+
+    mock_requests(
+        mocker,
+        "post",
+        {
+            "/pulls": (404, {"message": "Not Found"}),
+            "/reviews": (422, {"message": "Unprocessable Entity"}),
+        },
+    )
+    with pytest.raises(SystemExit):
+        # 400s should raise SystemExit
+        adapter.ask_github("/pulls", {}, is_post=True)
+
+    # 422s should not raise SystemExit
+    assert adapter.ask_github("/reviews", {}, is_post=True) == {
+        "message": "Unprocessable Entity"
+    }
+
+
+def test_create_suggestions_pull_request_writes_to_file(
+    mocker,
+    sample_dapi_ci_server_config,
+    sample_dapi_ci_trigger_pull_request,
+):
+    """Test DAPIServerAdapter.create_suggestions_pull_request writes to file"""
+    adapter = DAPIServerAdapter(
+        repo_root_dir="/path/to/repo",
+        dapi_server_config=sample_dapi_ci_server_config,
+        trigger_event=sample_dapi_ci_trigger_pull_request,
+    )
+    m_yaml = mocker.MagicMock()
+    m_yaml = mocker.patch.object(adapter.yaml, "dump")
+    m_json = mocker.patch("json.dump")
+    mock_open(mocker)
+    mock_requests(
+        mocker,
+        "post",
+        {
+            "/pulls": (200, {"number": 123}),
+        },
+    )
+    mock_requests(
+        mocker,
+        "get",
+        {
+            "/pulls": (200, [{"number": 2}]),
+        },
+    )
+    adapter.create_suggestions_pull_request(
+        server_response=DAPIServerResponse(
+            status_code=200,
+            json={
+                "suggestions": {
+                    "2.dapi.yaml": {"a": "b"},
+                    "2.dapi.json": {"c": "d"},
+                    "2.txt": {"e": "f"},
+                }
+            },
+        ),
+        message="Test message",
+    )
+    m_yaml.assert_called_once_with({"a": "b"}, mocker.ANY)
+    m_json.assert_called_once_with({"c": "d"}, mocker.ANY, indent=2)
+
+
 def test_dapi_server_adapter_validate(
     sample_opendapi_file_contents,
     sample_dapi_ci_server_config,
     sample_dapi_ci_trigger_push,
 ):
     """Test DAPIServerAdapter.validate"""
+    sample_dapi_ci_server_config.validate_dapi_individually = False
     adapter = DAPIServerAdapter(
         repo_root_dir="/path/to/repo",
         dapi_server_config=sample_dapi_ci_server_config,
@@ -455,7 +622,8 @@ def test_dapi_server_adapter_retrieve_stats(
         }
 
 
-def test_dapi_server_adapter_run(
+def test_run_with_push_event(
+    mocker,
     sample_opendapi_file_contents,
     sample_dapi_ci_server_config,
     sample_dapi_ci_trigger_push,
@@ -466,25 +634,298 @@ def test_dapi_server_adapter_run(
         dapi_server_config=sample_dapi_ci_server_config,
         trigger_event=sample_dapi_ci_trigger_push,
     )
+    m_requests_post = mock_requests(
+        mocker,
+        "post",
+        {
+            "/validate": (
+                200,
+                {
+                    "json": {"success": True},
+                    "text": "Validation successful",
+                    "md": "Validation successful",
+                },
+            ),
+            "/register": (
+                200,
+                {
+                    "json": {"success": True},
+                    "text": "Registration successful",
+                    "md": "Registration successful",
+                },
+            ),
+            "/impact": (
+                200,
+                {
+                    "json": {"success": True},
+                    "text": "Impact analysis successful",
+                    "md": "Impact analysis successful",
+                    "error": True,
+                },
+            ),
+            "/stats": (
+                200,
+                {
+                    "json": {"success": True},
+                    "text": "Stats retrieved successfully",
+                    "md": "Stats retrieved successfully",
+                },
+            ),
+            "/pulls": (200, {"json": {"success": True}}),
+            "/comments": (200, {"json": {"success": True}}),
+        },
+    )
+    adapter.run()
+    # 1 call each to register, analyze_impact, retrieve_stats,
+    # and 3 for validate (1 for non-dapis and 1 each for DAPIs)
+    # because we validate each DAPI separately for latency reasons
+    assert m_requests_post.call_count == 6
 
-    with mock.patch("requests.post") as mock_post:
-        mock_post.return_value.status_code = 200
-        mock_post.return_value.json.return_value = {
-            "text": "Validation successful",
-            "md": "Validation successful",
-            "json": {"success": True},
-        }
 
-        adapter.run()
-        # a call each to validate, register, analyze_impact, retrieve_stats,
-        assert mock_post.call_count == 4
+def test_run_with_pull_request_event(
+    mocker,
+    sample_opendapi_file_contents,
+    sample_dapi_ci_server_config,
+    sample_dapi_ci_trigger_pull_request,
+):
+    """Test DAPIServerAdapter.run with pull_request event"""
+    adapter = DAPIServerAdapter(
+        repo_root_dir="/path/to/repo",
+        dapi_server_config=sample_dapi_ci_server_config,
+        trigger_event=sample_dapi_ci_trigger_pull_request,
+    )
+    mock_open(mocker, "")
+    m_requests_post = mock_requests(
+        mocker,
+        "post",
+        {
+            "/validate": (
+                200,
+                {
+                    "json": {"success": True},
+                    "text": "Validation successful",
+                    "md": "Validation successful",
+                },
+            ),
+            "/register": (
+                200,
+                {
+                    "json": {"success": True},
+                    "text": "Registration successful",
+                    "md": "Registration successful",
+                },
+            ),
+            "/impact": (
+                200,
+                {
+                    "json": {"success": True},
+                    "text": "Impact analysis successful",
+                    "md": "Impact analysis successful",
+                },
+            ),
+            "/stats": (
+                200,
+                {
+                    "json": {"success": True},
+                    "text": "Stats retrieved successfully",
+                    "md": "Stats retrieved successfully",
+                },
+            ),
+            "/pulls": (200, {"number": 1}),
+            "/comments": (200, {"json": {"success": True}}),
+        },
+    )
+    m_requests_get = mock_requests(
+        mocker,
+        "get",
+        {
+            "/pulls": (200, []),
+        },
+    )
+
+    adapter.run()
+    # 1 call each to analyze_impact, retrieve_stats,
+    # 3 for validate (1 for non-dapis and 1 each for DAPIs)
+    # 2 to Github for creating a suggestions pull request and a comment on
+    # no register because this is not a push event
+    assert m_requests_post.call_count == 7
+    assert m_requests_get.call_count == 1
+
+
+def test_run_with_pull_request_event_existing_suggestions_pr(
+    mocker,
+    sample_opendapi_file_contents,
+    sample_dapi_ci_server_config,
+    sample_dapi_ci_trigger_pull_request,
+):
+    """Test DAPIServerAdapter.run with pull_request event"""
+    adapter = DAPIServerAdapter(
+        repo_root_dir="/path/to/repo",
+        dapi_server_config=sample_dapi_ci_server_config,
+        trigger_event=sample_dapi_ci_trigger_pull_request,
+    )
+    mock_open(mocker, "")
+    m_requests_post = mock_requests(
+        mocker,
+        "post",
+        {
+            "/validate": (
+                200,
+                {
+                    "json": {
+                        "success": True,
+                        "suggestions": {
+                            "1.dapi.yaml": "suggestion1",
+                            "2.dapi.yaml": "suggestion2",
+                        },
+                    },
+                    "text": "Validation successful",
+                    "md": "Validation successful",
+                },
+            ),
+            "/register": (
+                200,
+                {
+                    "json": {"success": True},
+                    "text": "Registration successful",
+                    "md": "Registration successful",
+                },
+            ),
+            "/impact": (
+                200,
+                {
+                    "json": {"success": True},
+                    "text": "Impact analysis successful",
+                    "md": "Impact analysis successful",
+                },
+            ),
+            "/stats": (
+                200,
+                {
+                    "json": {"success": True},
+                    "text": "Stats retrieved successfully",
+                    "md": "Stats retrieved successfully",
+                },
+            ),
+            "/pulls": (200, {"number": 1}),
+            "/comments": (200, {"json": {"success": True}}),
+        },
+    )
+
+    # Existing suggestion
+    m_requests_get = mock_requests(
+        mocker,
+        "get",
+        {
+            "/pulls": (200, [{"number": 12, "body": "Suggestion"}]),
+        },
+    )
+
+    adapter.run()
+    # 1 call each to analyze_impact, retrieve_stats,
+    # 3 for validate (1 for non-dapis and 1 each for DAPIs)
+    # 1 to Github t add a comment
+    # no github create PR because there is already one
+    # no register because this is not a push event
+    assert m_requests_post.call_count == 6
+    assert m_requests_get.call_count == 1
+
+
+def test_run_with_pull_request_event_no_suggestions(
+    mocker,
+    sample_opendapi_file_contents,
+    sample_dapi_ci_server_config,
+    sample_dapi_ci_trigger_pull_request,
+):
+    """Test DAPIServerAdapter.run with pull_request event"""
+    adapter = DAPIServerAdapter(
+        repo_root_dir="/path/to/repo",
+        dapi_server_config=sample_dapi_ci_server_config,
+        trigger_event=sample_dapi_ci_trigger_pull_request,
+    )
+
+    mock_open(mocker, "")
+    mock_subprocess_check_output(
+        mocker,
+        {
+            "git diff": b"2.dapi.yaml\n2.teams.yaml\n"
+            b"2.datastores.yaml\n2.purposes.yaml\n",
+            "git rev-parse": b"current_branch",
+            "git status": b"",
+        },
+    )
+    m_requests_post = mock_requests(
+        mocker,
+        "post",
+        {
+            "/validate": (
+                200,
+                {
+                    "json": {
+                        "success": True,
+                        "suggestions": {
+                            "1.dapi.yaml": "suggestion1",
+                            "2.dapi.yaml": "suggestion2",
+                        },
+                    },
+                    "text": "Validation successful",
+                    "md": "Validation successful",
+                },
+            ),
+            "/register": (
+                200,
+                {
+                    "json": {"success": True},
+                    "text": "Registration successful",
+                    "md": "Registration successful",
+                },
+            ),
+            "/impact": (
+                200,
+                {
+                    "json": {"success": True},
+                    "text": "Impact analysis successful",
+                    "md": "Impact analysis successful",
+                },
+            ),
+            "/stats": (
+                200,
+                {
+                    "json": {"success": True},
+                    "text": "Stats retrieved successfully",
+                    "md": "Stats retrieved successfully",
+                },
+            ),
+            "/pulls": (200, {"number": 1}),
+            "/comments": (200, {"json": {"success": True}}),
+        },
+    )
+
+    # Existing suggestion
+    m_requests_get = mock_requests(
+        mocker,
+        "get",
+        {
+            "/pulls": (200, [{"number": 12, "body": "Suggestion"}]),
+        },
+    )
+
+    adapter.run()
+    # 1 call each to analyze_impact, retrieve_stats,
+    # 3 for validate (1 for non-dapis and 1 each for DAPIs)
+    # 1 to Github t add a comment
+    # no github create PR because there is already one
+    # no register because this is not a push event
+    assert m_requests_post.call_count == 6
+    # No call to get existing PRs for suggestions as there are no changes
+    assert m_requests_get.call_count == 0
 
 
 def test_main(mocker):
     """Test the main function"""
     m_adapter_run = mocker.patch.object(DAPIServerAdapter, "run")
-    mock_open = mocker.mock_open(read_data="dummy")
-    mocker.patch("builtins.open", mock_open)
+    m_open = mocker.mock_open(read_data="dummy")
+    mocker.patch("builtins.open", m_open)
     main()
     m_adapter_run.assert_called_once()
 
@@ -495,8 +936,8 @@ def test_main_unsupported_event_name(mocker):
     new_environ["GITHUB_EVENT_NAME"] = "unsupported"
     mocker.patch.dict(os.environ, new_environ)
     m_adapter_run = mocker.patch.object(DAPIServerAdapter, "run")
-    mock_open = mocker.mock_open(read_data="dummy")
-    mocker.patch("builtins.open", mock_open)
+    m_open = mocker.mock_open(read_data="dummy")
+    mocker.patch("builtins.open", m_open)
     with pytest.raises(SystemExit):
         main()
     m_adapter_run.assert_not_called()

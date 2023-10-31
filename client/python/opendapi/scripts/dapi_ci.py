@@ -8,8 +8,9 @@ import sys
 from typing import Dict, List, Optional
 
 from dataclasses import dataclass
-from deepmerge import always_merger
 from urllib.parse import urljoin
+from deepmerge import always_merger
+from ruamel.yaml import YAML
 
 import requests
 
@@ -28,7 +29,7 @@ class ChangeTriggerEvent:
     after_change_sha: str
     repo_api_url: str
     repo_owner: str
-    git_ref: Optional[str] = None
+    git_ref: str = None
     pull_request_number: Optional[int] = None
 
 
@@ -43,6 +44,7 @@ class DAPIServerConfig:
     suggest_changes: bool = True
     display_dapi_stats: bool = True
     validate_dapi_individually: bool = True
+
 
 @dataclass
 class DAPIServerResponse:
@@ -75,7 +77,8 @@ class DAPIServerResponse:
         def merge_text_fn(this_text, other_text):
             return (
                 "\n\n".join([this_text, other_text])
-                if this_text != other_text else other_text
+                if this_text != other_text
+                else other_text
             )
 
         def merge_dict(this_dict, other_dict):
@@ -143,6 +146,7 @@ class DAPIServerAdapter:
         self.changed_files: OpenDAPIFileContents = self.get_changed_opendapi_files(
             self.trigger_event.before_change_sha, self.trigger_event.after_change_sha
         )
+        self.yaml = YAML()
 
     def display_markdown_summary(self, message: str):
         """Set the message to be displayed on the DAPI Server."""
@@ -180,18 +184,18 @@ class DAPIServerAdapter:
         except subprocess.CalledProcessError as exc:
             print(
                 f"Error while running git command {command_split}: {exc}",
-                file=sys.stderr
+                file=sys.stderr,
             )
             sys.exit(1)
 
-    def git_diff_filenames(self, before_change_sha: str, after_change_sha: str) -> List[str]:
+    def git_diff_filenames(
+        self, before_change_sha: str, after_change_sha: str
+    ) -> List[str]:
         """Get the list of files changed between two commits."""
         files = self._run_git_command(
             ["git", "diff", "--name-only", before_change_sha, after_change_sha]
         )
-        return [
-            filename for filename in files.decode("utf-8").split("\n") if filename
-        ]
+        return [filename for filename in files.decode("utf-8").split("\n") if filename]
 
     def get_changed_opendapi_files(
         self, before_change_sha: str, after_change_sha: str
@@ -210,12 +214,12 @@ class DAPIServerAdapter:
                         result[result_key][filename] = file_contents
         return OpenDAPIFileContents(**result, root_dir=self.repo_root_dir)
 
-    def _ask_github(self, api_path: str, json_payload: str, is_post: bool) -> Dict:
+    def ask_github(self, api_path: str, json_payload: str, is_post: bool) -> Dict:
         """Make API calls to github"""
         headers = {
             "Content-Type": "application/json",
             "Authorization": f"Bearer {os.environ['GITHUB_TOKEN']}",
-            'User-Agent': 'opendapi.org',
+            "User-Agent": "opendapi.org",
         }
         if is_post:
             response = requests.post(
@@ -231,7 +235,6 @@ class DAPIServerAdapter:
                 headers=headers,
                 timeout=30,
             )
-
         # Error on any status code other than 201 (created) or 422 (PR already exists)
         if response.status_code > 400 and response.status_code != 422:
             print(
@@ -245,19 +248,22 @@ class DAPIServerAdapter:
 
         return response.json()
 
-    def create_or_update_pull_request(self, title: str, body: str, base: str, head:str) -> int:
+    def create_or_update_pull_request(
+        self, title: str, body: str, base: str, head: str
+    ) -> int:
         """Create or update a pull request on Github."""
 
         # Check if a pull request already exists for this branch using list pull requests
-        pull_requests = self._ask_github(
+        pull_requests = self.ask_github(
             "pulls",
             {"head": f"{self.trigger_event.repo_owner}:{head}", "base": base},
             is_post=False,
         )
 
         if not pull_requests:
-            # Create a new pull request for autoupdate_branch_name to the base branch if one doesn't exist
-            response_json = self._ask_github(
+            # Create a new pull request for autoupdate_branch_name
+            # to the base branch if one doesn't exist
+            response_json = self.ask_github(
                 "pulls",
                 {"title": title, "body": body, "head": head, "base": base},
                 is_post=True,
@@ -268,10 +274,9 @@ class DAPIServerAdapter:
 
         return suggestions_pr_number
 
-
     def add_pull_request_comment(self, message):
         """Add a comment to the pull request."""
-        self._ask_github(
+        self.ask_github(
             f"issues/{self.trigger_event.pull_request_number}/comments",
             {"body": message},
             is_post=True,
@@ -308,34 +313,35 @@ class DAPIServerAdapter:
             json=message.get("json"),
         )
 
-
     def create_suggestions_pull_request(
         self, server_response: DAPIServerResponse, message: str
     ) -> Optional[int]:
         """Add suggestions as a commit."""
-
-        # TODO [KB]: REMOVE
-        suggestions = server_response.suggestions or {
-            'README.md': "hello22"
-        }
+        suggestions = server_response.suggestions
 
         # Set git config
-        self._run_git_command(["git", "config", "--global", "user.email", "github-actions@github.com"])
-        self._run_git_command(["git", "config", "--global", "user.name", "github-actions"])
+        self._run_git_command(
+            ["git", "config", "--global", "user.email", "github-actions@github.com"]
+        )
+        self._run_git_command(
+            ["git", "config", "--global", "user.name", "github-actions"]
+        )
 
         # Get current branch name
-        current_branch_name = self._run_git_command(
-            ["git", "rev-parse", "--abbrev-ref", "HEAD"]
-        ).decode("utf-8").strip()
+        current_branch_name = (
+            self._run_git_command(["git", "rev-parse", "--abbrev-ref", "HEAD"])
+            .decode("utf-8")
+            .strip()
+        )
 
         # Identify an unique branch name for this Pull request
-        autoupdate_branch_name = f"opendapi-autoupdate/{self.trigger_event.pull_request_number}"
+        autoupdate_branch_name = (
+            f"opendapi-autoupdate/{self.trigger_event.pull_request_number}"
+        )
 
         # Checkout a branch for this Pull request to make the changes if one doesn't exist
         # if it does exist, checkout the branch and reset it to the latest commit
-        self._run_git_command(
-            ["git", "checkout", "-B", autoupdate_branch_name]
-        )
+        self._run_git_command(["git", "checkout", "-B", autoupdate_branch_name])
 
         # Reset the branch to the latest commit on the Pull request
         self._run_git_command(
@@ -348,8 +354,12 @@ class DAPIServerAdapter:
             with open(
                 os.path.join(self.repo_root_dir, filename), "w", encoding="utf-8"
             ) as file_ptr:
-                # TODO [KB]: Use ruamel.yaml to write the file
-                print(file_contents, file=file_ptr)
+                if filename.endswith(".yaml") or filename.endswith(".yml"):
+                    self.yaml.dump(file_contents, file_ptr)
+                elif filename.endswith(".json"):
+                    json.dump(file_contents, file_ptr, indent=2)
+                else:
+                    print(file_contents, file=file_ptr)
 
         # Add all files to the commit
         self._run_git_command(["git", "add", "."])
@@ -380,7 +390,6 @@ class DAPIServerAdapter:
 
         return suggestions_pr_number
 
-
     def add_action_summary(self, resp: DAPIServerResponse):
         """Summarize the output of a request to the DAPI Server."""
         if resp.error:
@@ -410,8 +419,7 @@ class DAPIServerAdapter:
                 "teams": all_files["teams"],
                 "datastores": all_files["datastores"],
                 "purposes": all_files["purposes"],
-                # TODO [KB]: FIX
-                "suggest_changes": False,
+                "suggest_changes": self.dapi_server_config.suggest_changes,
             },
         )
         if self.dapi_server_config.validate_dapi_individually:
@@ -423,8 +431,7 @@ class DAPIServerAdapter:
                         "teams": {},
                         "datastores": {},
                         "purposes": {},
-                        # TODO [KB]: FIX
-                        "suggest_changes": False,
+                        "suggest_changes": self.dapi_server_config.suggest_changes,
                     },
                 )
                 resp = resp.merge(this_resp)
@@ -521,21 +528,15 @@ class DAPIServerAdapter:
         if self.trigger_event.event_type == "pull_request":
             pr_comment_md = "## OpenDAPI Actions\n"
             if suggestions_pr_number:
-                pr_comment_md += f"### Suggestions\n"
-                pr_comment_md += (
-                    f"See #{suggestions_pr_number} for suggestions."
-                )
+                pr_comment_md += "### Suggestions\n"
+                pr_comment_md += f"See #{suggestions_pr_number} for suggestions."
                 pr_comment_md += "\n\n"
             if validate_resp.markdown:
                 pr_comment_md += "### Validating OpenDAPI files\n"
                 pr_comment_md += validate_resp.markdown
                 pr_comment_md += "\n\n"
 
-            if register_resp.markdown:
-                pr_comment_md += "### Registering DAPI files\n"
-                pr_comment_md += register_resp.markdown
-                pr_comment_md += "\n\n"
-
+            # No registration response for Pull requests
             if impact_resp.markdown:
                 pr_comment_md += "### Analyzing impact on DAPI changes\n"
                 pr_comment_md += impact_resp.markdown
@@ -553,6 +554,7 @@ class DAPIServerAdapter:
 def _force_boolean(value: str) -> bool:
     """Force a string to be a boolean."""
     return value.lower() in ["true", "1", "t", "y", "yes"]
+
 
 def main():
     """Run the action."""
@@ -573,7 +575,6 @@ def main():
             file=sys.stderr,
         )
         sys.exit(1)
-
     change_trigger_event = ChangeTriggerEvent(
         event_type=gh_context["event_name"],
         repo_api_url=gh_context["event"]["repository"]["url"],
