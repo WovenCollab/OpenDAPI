@@ -433,6 +433,7 @@ def test_create_suggestions_pull_request_writes_to_file(
 
 
 def test_dapi_server_adapter_validate(
+    mocker,
     sample_opendapi_file_contents,
     sample_dapi_ci_server_config,
     sample_dapi_ci_trigger_push,
@@ -445,27 +446,34 @@ def test_dapi_server_adapter_validate(
         trigger_event=sample_dapi_ci_trigger_push,
     )
 
-    with mock.patch("requests.post") as mock_post:
-        mock_post.return_value.status_code = 200
-        mock_post.return_value.json.return_value = {
-            "text": "Validation successful",
-            "md": "Validation successful",
-            "json": {"success": True},
-        }
+    mock_post = mock_requests(
+        mocker,
+        "post",
+        {
+            "/validate": (
+                200,
+                {
+                    "text": "Validation successful",
+                    "md": "Validation successful",
+                    "json": {"success": True},
+                },
+            )
+        },
+    )
 
-        adapter.validate()
+    adapter.validate()
 
-        assert mock_post.called
-        _, kwargs = mock_post.call_args
-        expected = {
-            key: sample_opendapi_file_contents.for_server()[key]
-            for key in ["dapis", "teams", "datastores", "purposes"]
-        }
-        assert kwargs["json"] == {"suggest_changes": True, **expected}
+    assert mock_post.called
+    _, kwargs = mock_post.call_args
+    expected = {
+        key: sample_opendapi_file_contents.for_server()[key]
+        for key in ["dapis", "teams", "datastores", "purposes"]
+    }
+    assert kwargs["json"] == {"suggest_changes": True, **expected}
 
 
 def test_dapi_server_adapter_validate_fails(
-    sample_opendapi_file_contents,
+    mocker,
     sample_dapi_ci_server_config,
     sample_dapi_ci_trigger_push,
 ):
@@ -475,18 +483,19 @@ def test_dapi_server_adapter_validate_fails(
         dapi_server_config=sample_dapi_ci_server_config,
         trigger_event=sample_dapi_ci_trigger_push,
     )
+    mock_post = mock_requests(
+        mocker,
+        "post",
+        {"/validate": (500, {})},
+    )
+    with pytest.raises(SystemExit):
+        adapter.validate()
 
-    with mock.patch("requests.post") as mock_post:
-        mock_post.return_value.status_code = 500
-
-        with pytest.raises(SystemExit):
-            adapter.validate()
-
-        assert mock_post.called
+    assert mock_post.called
 
 
 def test_dapi_server_adapter_validate_returns_error_message(
-    sample_opendapi_file_contents,
+    mocker,
     sample_dapi_ci_server_config,
     sample_dapi_ci_trigger_push,
 ):
@@ -496,20 +505,26 @@ def test_dapi_server_adapter_validate_returns_error_message(
         dapi_server_config=sample_dapi_ci_server_config,
         trigger_event=sample_dapi_ci_trigger_push,
     )
-
-    with mock.patch("requests.post") as mock_post:
-        mock_post.return_value.status_code = 400
-        mock_post.return_value.json.return_value = {
-            "md": "Validation failed",
-            "json": {"success": False, "error": True},
-            "text": "Error message",
-        }
-
-        adapter.validate()
-        assert mock_post.called
+    mock_post = mock_requests(
+        mocker,
+        "post",
+        {
+            "/validate": (
+                400,
+                {
+                    "text": "Validation failed",
+                    "md": "Validation failed",
+                    "json": {"success": False, "error": True},
+                },
+            )
+        },
+    )
+    adapter.validate()
+    assert mock_post.called
 
 
 def test_dapi_server_adapter_register(
+    mocker,
     sample_opendapi_file_contents,
     sample_dapi_ci_server_config,
     sample_dapi_ci_trigger_push,
@@ -521,27 +536,34 @@ def test_dapi_server_adapter_register(
         dapi_server_config=sample_dapi_ci_server_config,
         trigger_event=sample_dapi_ci_trigger_push,
     )
+    mock_post = mock_requests(
+        mocker,
+        "post",
+        {
+            "/register": (
+                200,
+                {
+                    "text": "Registration successful",
+                    "md": "Registration successful",
+                    "json": {"success": True},
+                },
+            )
+        },
+    )
 
-    with mock.patch("requests.post") as mock_post:
-        mock_post.return_value.status_code = 200
-        mock_post.return_value.json.return_value = {
-            "md": "Registration successful",
-            "json": {"success": True},
-        }
+    adapter.register()
 
-        adapter.register()
-
-        assert mock_post.called
-        _, kwargs = mock_post.call_args
-        expected = {
-            key: sample_opendapi_file_contents.for_server()[key]
-            for key in ["dapis", "teams", "datastores", "purposes"]
-        }
-        assert kwargs["json"] == {"commit_hash": "after_sha", **expected}
+    assert mock_post.called
+    _, kwargs = mock_post.call_args
+    expected = {
+        key: sample_opendapi_file_contents.for_server()[key]
+        for key in ["dapis", "teams", "datastores", "purposes"]
+    }
+    assert kwargs["json"] == {"commit_hash": "after_sha", **expected}
 
 
 def test_dapi_server_adapter_register_only_when_appropriate(
-    sample_opendapi_file_contents,
+    mocker,
     sample_dapi_ci_server_config,
     sample_dapi_ci_trigger_pull_request,
 ):
@@ -552,20 +574,27 @@ def test_dapi_server_adapter_register_only_when_appropriate(
         dapi_server_config=sample_dapi_ci_server_config,
         trigger_event=sample_dapi_ci_trigger_pull_request,
     )
+    mock_post = mock_requests(
+        mocker,
+        "post",
+        {
+            "/register": (
+                200,
+                {
+                    "text": "Registration successful",
+                    "md": "Registration successful",
+                    "json": {"success": True},
+                },
+            )
+        },
+    )
 
-    with mock.patch("requests.post") as mock_post:
-        mock_post.return_value.status_code = 200
-        mock_post.return_value.json.return_value = {
-            "md": "Registration successful",
-            "json": {"success": True},
-        }
-
-        adapter.register()
-        mock_post.assert_not_called()
+    adapter.register()
+    mock_post.assert_not_called()
 
 
 def test_dapi_server_adapter_analyze_impact(
-    sample_opendapi_file_contents,
+    mocker,
     sample_dapi_ci_server_config,
     sample_dapi_ci_trigger_push,
 ):
@@ -575,26 +604,32 @@ def test_dapi_server_adapter_analyze_impact(
         dapi_server_config=sample_dapi_ci_server_config,
         trigger_event=sample_dapi_ci_trigger_push,
     )
+    mock_post = mock_requests(
+        mocker,
+        "post",
+        {
+            "/impact": (
+                200,
+                {
+                    "text": "Impact analysis successful",
+                    "md": "Impact analysis successful",
+                    "json": {"success": True},
+                },
+            )
+        },
+    )
+    adapter.analyze_impact()
 
-    with mock.patch("requests.post") as mock_post:
-        mock_post.return_value.status_code = 200
-        mock_post.return_value.json.return_value = {
-            "md": "Impact analysis successful",
-            "json": {"success": True},
-        }
-
-        adapter.analyze_impact()
-
-        assert mock_post.called
-        _, kwargs = mock_post.call_args
-        assert kwargs["json"] == {
-            key: adapter.changed_files.for_server()[key]
-            for key in ["dapis", "teams", "datastores", "purposes"]
-        }
+    assert mock_post.called
+    _, kwargs = mock_post.call_args
+    assert kwargs["json"] == {
+        key: adapter.changed_files.for_server()[key]
+        for key in ["dapis", "teams", "datastores", "purposes"]
+    }
 
 
 def test_dapi_server_adapter_retrieve_stats(
-    sample_opendapi_file_contents,
+    mocker,
     sample_dapi_ci_server_config,
     sample_dapi_ci_trigger_push,
 ):
@@ -605,21 +640,29 @@ def test_dapi_server_adapter_retrieve_stats(
         trigger_event=sample_dapi_ci_trigger_push,
     )
 
-    with mock.patch("requests.post") as mock_post:
-        mock_post.return_value.status_code = 200
-        mock_post.return_value.json.return_value = {
-            "md": "Stats retrieved successfully",
-            "json": {"success": True},
-        }
+    mock_post = mock_requests(
+        mocker,
+        "post",
+        {
+            "/stats": (
+                200,
+                {
+                    "text": "Stats retrieved successfully",
+                    "md": "Stats retrieved successfully",
+                    "json": {"success": True},
+                },
+            )
+        },
+    )
 
-        adapter.retrieve_stats()
+    adapter.retrieve_stats()
 
-        assert mock_post.called
-        _, kwargs = mock_post.call_args
-        assert kwargs["json"] == {
-            key: adapter.changed_files.for_server()[key]
-            for key in ["dapis", "teams", "datastores", "purposes"]
-        }
+    assert mock_post.called
+    _, kwargs = mock_post.call_args
+    assert kwargs["json"] == {
+        key: adapter.changed_files.for_server()[key]
+        for key in ["dapis", "teams", "datastores", "purposes"]
+    }
 
 
 def test_run_with_push_event(
