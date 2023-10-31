@@ -366,7 +366,6 @@ class TestSqlAlchemyDapiValidator:
         location = dapi_validator.build_dapi_location_for_table(
             self._get_user_table_from_metadata()
         )
-        print(location)
         assert location == f"{temp_directory}/sqlalchemy/user.dapi.yaml"
 
     def test_build_urn_for_table(self, temp_directory):

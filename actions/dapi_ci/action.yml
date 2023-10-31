@@ -27,6 +27,8 @@ runs:
       uses: actions/checkout@v3
       with:
         fetch-depth: 0
+        # Checkout the correct branch instead of detached HEAD
+        ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.ref || github.ref }}
 
     - name: Set up Python
       uses: actions/setup-python@v4
@@ -53,3 +55,4 @@ runs:
         MAINLINE_BRANCH_NAME: ${{ inputs.MAINLINE_BRANCH_NAME }}
         REGISTER_ON_MERGE_TO_MAINLINE: ${{ inputs.REGISTER_ON_MERGE_TO_MAINLINE }}
         SUGGEST_CHANGES: ${{ inputs.SUGGEST_CHANGES }}
+        GITHUB_TOKEN: ${{ github.token }}
