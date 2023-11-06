@@ -528,8 +528,8 @@ class DAPIServerAdapter:
         if self.trigger_event.event_type == "pull_request":
             pr_comment_md = f"## OpenDAPI Actions \n"
             pr_comment_md += f"Run Name:{os.environ['RUN_NAME']}\n"
-            pr_comment_md += f"Run Name:{os.environ['RUN_ID']}\n"
-            pr_comment_md += f"Run Name:{os.environ['WORKFLOW_NAME']}\n"
+            pr_comment_md += f"Run ID:{os.environ['RUN_ID']}\n"
+            pr_comment_md += f"Workflow Name:{os.environ['WORKFLOW_NAME']}\n"
             if suggestions_pr_number:
                 pr_comment_md += "### Suggestions\n"
                 pr_comment_md += f"See #{suggestions_pr_number} for suggestions."
