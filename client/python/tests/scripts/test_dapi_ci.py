@@ -214,6 +214,9 @@ def setup(mocker, temp_directory):
             "GITHUB_EVENT_PATH": f"{temp_directory}/trigger_event.json",
             "GITHUB_STEP_SUMMARY": f"{temp_directory}/output.txt",
             "GITHUB_TOKEN": "your-github-token",
+            "RUN_NAME": "test-run-name",
+            "RUN_ID": "test-run-id",
+            "WORKFLOW_NAME": "test-workflow-name",
         },
     )
 
