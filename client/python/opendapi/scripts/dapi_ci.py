@@ -503,7 +503,7 @@ class DAPIServerAdapter:
         # Create Pull request commit with suggestions
         if (
             self.dapi_server_config.suggest_changes
-        and self.trigger_event.event_type == "pull_request"
+            and self.trigger_event.event_type == "pull_request"
         ):
             suggestions_pr_number = self.create_suggestions_pull_request(
                 validate_resp, "OpenDAPI suggestions"
