@@ -42,7 +42,7 @@ class DAPIServerConfig:
     mainline_branch_name: str
     register_on_merge_to_mainline: bool
     suggest_changes: bool = True
-    display_dapi_stats: bool = True
+    display_dapi_stats: bool = False
     validate_dapi_individually: bool = True
 
 
@@ -503,7 +503,7 @@ class DAPIServerAdapter:
         # Create Pull request commit with suggestions
         if (
             self.dapi_server_config.suggest_changes
-            and self.trigger_event.event_type == "pull_request"
+        and self.trigger_event.event_type == "pull_request"
         ):
             suggestions_pr_number = self.create_suggestions_pull_request(
                 validate_resp, "OpenDAPI suggestions"
@@ -526,7 +526,10 @@ class DAPIServerAdapter:
 
         # Construct and add summary response as a Pull request comment
         if self.trigger_event.event_type == "pull_request":
-            pr_comment_md = "## OpenDAPI Actions\n"
+            pr_comment_md = f"## OpenDAPI Actions \n"
+            pr_comment_md += f"Run Name:{os.environ['RUN_NAME']}\n"
+            pr_comment_md += f"Run Name:{os.environ['RUN_ID']}\n"
+            pr_comment_md += f"Run Name:{os.environ['WORKFLOW_NAME']}\n"
             if suggestions_pr_number:
                 pr_comment_md += "### Suggestions\n"
                 pr_comment_md += f"See #{suggestions_pr_number} for suggestions."

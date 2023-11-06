@@ -56,3 +56,6 @@ runs:
         REGISTER_ON_MERGE_TO_MAINLINE: ${{ inputs.REGISTER_ON_MERGE_TO_MAINLINE }}
         SUGGEST_CHANGES: ${{ inputs.SUGGEST_CHANGES }}
         GITHUB_TOKEN: ${{ github.token }}
+        RUN_NAME: ${{ github.run-name}}
+        RUN_ID: ${{ github.run_id}}
+        WORKFLOW_NAME: ${{ github.workflow }}
