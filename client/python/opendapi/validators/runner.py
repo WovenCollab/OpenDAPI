@@ -80,6 +80,33 @@ class Runner:
             )
         return self.DAPIS_DIR_PATH
 
+    @property
+    def sanitized_org_name(self) -> str:
+        """Sanitized org name"""
+        return str(self.ORG_NAME).strip().lower().replace(" ", "_")
+
+    @property
+    def sanitized_seed_teams_names(self) -> List[str]:
+        """Sanitized seed teams names"""
+        return [
+            name.strip().lower().replace(" ", "_") for name in self.SEED_TEAMS_NAMES
+        ]
+
+    @property
+    def sanitized_seed_datastores_names_with_types(self) -> Dict[str, str]:
+        """Sanitized seed datastores names with types"""
+        return {
+            name.strip().lower().replace(" ", "_"): type_
+            for name, type_ in self.SEED_DATASTORES_NAMES_WITH_TYPES.items()
+        }
+
+    @property
+    def sanitized_seed_purposes_names(self) -> List[str]:
+        """Sanitized seed purposes names"""
+        return [
+            name.strip().lower().replace(" ", "_") for name in self.SEED_PURPOSES_NAMES
+        ]
+
     @staticmethod
     def _teams_validator(inst) -> Type[TeamsValidator]:
         """Choose the validator to validate the teams OpenDAPI files"""
@@ -91,24 +118,24 @@ class Runner:
 
             def base_template_for_autoupdate(self) -> Dict[str, Dict]:
                 return {
-                    f"{inst.dapis_dir}/{inst.ORG_NAME.lower()}.teams.yaml": {
+                    f"{inst.dapis_dir}/{inst.sanitized_org_name}.teams.yaml": {
                         "schema": OPENDAPI_SPEC_URL.format(
                             version=inst.DAPIS_VERSION, entity="teams"
                         ),
                         "organization": {
-                            "name": inst.ORG_NAME,
+                            "name": inst.sanitized_org_name,
                             "slack_teams": [inst.ORG_SLACK_TEAM_ID]
                             if inst.ORG_SLACK_TEAM_ID
                             else [],
                         },
                         "teams": [
                             {
-                                "urn": f"{inst.ORG_NAME.lower()}.teams.{team_name.lower()}",
+                                "urn": f"{inst.sanitized_org_name}.teams.{team_name}",
                                 "name": team_name,
                                 "domain": PLACEHOLDER_TEXT,
                                 "email": f"grp.{team_name}@{inst.ORG_EMAIL_DOMAIN.lower()}",
                             }
-                            for team_name in inst.SEED_TEAMS_NAMES
+                            for team_name in inst.sanitized_seed_teams_names
                         ],
                     }
                 }
@@ -126,13 +153,13 @@ class Runner:
 
             def base_template_for_autoupdate(self) -> Dict[str, Dict]:
                 return {
-                    f"{inst.dapis_dir}/{inst.ORG_NAME.lower()}.datastores.yaml": {
+                    f"{inst.dapis_dir}/{inst.sanitized_org_name}.datastores.yaml": {
                         "schema": OPENDAPI_SPEC_URL.format(
                             version=inst.DAPIS_VERSION, entity="datastores"
                         ),
                         "datastores": [
                             {
-                                "urn": f"{inst.ORG_NAME.lower()}.datastores.{name}",
+                                "urn": f"{inst.sanitized_org_name}.datastores.{name}",
                                 "type": type,
                                 "host": {
                                     "env_prod": {
@@ -140,7 +167,9 @@ class Runner:
                                     },
                                 },
                             }
-                            for name, type in inst.SEED_DATASTORES_NAMES_WITH_TYPES.items()
+                            for name, type in (
+                                inst.sanitized_seed_datastores_names_with_types.items()
+                            )
                         ],
                     }
                 }
@@ -158,16 +187,16 @@ class Runner:
 
             def base_template_for_autoupdate(self) -> Dict[str, Dict]:
                 return {
-                    f"{inst.dapis_dir}/{inst.ORG_NAME}.purposes.yaml": {
+                    f"{inst.dapis_dir}/{inst.sanitized_org_name}.purposes.yaml": {
                         "schema": OPENDAPI_SPEC_URL.format(
                             version=inst.DAPIS_VERSION, entity="purposes"
                         ),
                         "purposes": [
                             {
-                                "urn": f"{inst.ORG_NAME.lower()}.purposes.{name.lower()}",
+                                "urn": f"{inst.sanitized_org_name}.purposes.{name}",
                                 "description": PLACEHOLDER_TEXT,
                             }
-                            for name in inst.SEED_PURPOSES_NAMES
+                            for name in inst.sanitized_seed_purposes_names
                         ],
                     }
                 }
@@ -203,7 +232,7 @@ class Runner:
                     "producers": [
                         {
                             "urn": (
-                                f"{inst.ORG_NAME.lower()}.datastores"
+                                f"{inst.sanitized_org_name}.datastores"
                                 f".{inst.PYNAMODB_PRODUCER_DATASTORE_NAME}"
                                 if inst.PYNAMODB_PRODUCER_DATASTORE_NAME
                                 else PLACEHOLDER_TEXT
@@ -217,7 +246,7 @@ class Runner:
                     "consumers": [
                         {
                             "urn": (
-                                f"{inst.ORG_NAME.lower()}.datastores"
+                                f"{inst.sanitized_org_name}.datastores"
                                 f".{inst.PYNAMODB_CONSUMER_SNOWFLAKE_DATASTORE_NAME}"
                                 if inst.PYNAMODB_CONSUMER_SNOWFLAKE_DATASTORE_NAME
                                 else PLACEHOLDER_TEXT
@@ -246,7 +275,7 @@ class Runner:
                 return PLACEHOLDER_TEXT
 
             def build_urn_for_table(self, table):
-                return f"{inst.ORG_NAME.lower()}.dapis.{table.Meta.table_name}"
+                return f"{inst.sanitized_org_name}.dapis.{table.Meta.table_name}"
 
             def build_dapi_location_for_table(self, table) -> str:
                 return f"{inst.dapis_dir}/pynamodb/{table.Meta.table_name}.dapi.yaml"
@@ -275,7 +304,7 @@ class Runner:
                     "producers": [
                         {
                             "urn": (
-                                f"{inst.ORG_NAME.lower()}.datastores"
+                                f"{inst.sanitized_org_name}.datastores"
                                 f".{inst.SQLALCHEMY_PRODUCER_DATASTORE_NAME}"
                                 if inst.SQLALCHEMY_PRODUCER_DATASTORE_NAME
                                 else PLACEHOLDER_TEXT
@@ -289,7 +318,7 @@ class Runner:
                     "consumers": [
                         {
                             "urn": (
-                                f"{inst.ORG_NAME.lower()}.datastores"
+                                f"{inst.sanitized_org_name}.datastores"
                                 f".{inst.SQLALCHEMY_CONSUMER_SNOWFLAKE_DATASTORE_NAME}"
                                 if inst.SQLALCHEMY_CONSUMER_SNOWFLAKE_DATASTORE_NAME
                                 else PLACEHOLDER_TEXT
@@ -322,7 +351,7 @@ class Runner:
                 return PLACEHOLDER_TEXT
 
             def build_urn_for_table(self, table):
-                return f"{inst.ORG_NAME.lower()}.dapis.{table.name}"
+                return f"{inst.sanitized_org_name}.dapis.{table.name}"
 
             def build_dapi_location_for_table(self, table):
                 return f"{inst.dapis_dir}/sqlalchemy/{table.name}.dapi.yaml"

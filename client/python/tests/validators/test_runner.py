@@ -35,7 +35,7 @@ class TestRunner(Runner):
     PURPOSES_VALIDATION_ENABLED: bool = False
 
     # Org input
-    ORG_NAME: str = "acme_co"
+    ORG_NAME: str = "Acme Co"
     ORG_EMAIL_DOMAIN: str = "company.com"
     ORG_SLACK_TEAM_ID: Optional[str] = None
 

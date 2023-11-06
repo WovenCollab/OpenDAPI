@@ -1,6 +1,7 @@
 """Validator class for DAPI and related files"""
 from typing import Dict, List
 
+import os
 import glob
 import json
 import requests
@@ -186,6 +187,11 @@ class BaseValidator:
             content = base_content
             if file in self.parsed_files:
                 content = self._get_merger().merge(content, self.parsed_files[file])
+
+            # Create the directory if it does not exist
+            dir_name = os.path.dirname(file)
+            os.makedirs(dir_name, exist_ok=True)
+
             with open(file, "w", encoding="utf-8") as file_handle:
                 self.yaml.dump(content, file_handle)
         self.parsed_files = self._get_file_contents_for_suffix(self.SUFFIX)
