@@ -1,4 +1,4 @@
-# pylint: disable=unused-argument
+# pylint: disable=unused-argument, too-many-lines
 """Tests script/dapi_ci.py"""
 import os
 import subprocess
@@ -9,8 +9,9 @@ import pytest
 
 from opendapi.scripts.dapi_ci import (
     ChangeTriggerEvent,
-    DAPIServerConfig,
     DAPIServerAdapter,
+    DAPIServerConfig,
+    DAPIServerMeta,
     DAPIServerResponse,
     OpenDAPIFileContents,
     main,
@@ -163,7 +164,6 @@ def mock_requests(
 
     def _get_response_for_path_suffix(url, *_, **unused):
         """Return a response for the given path suffix"""
-        print(url)
         for path_suffix, response_tuple in response_by_path_suffix.items():
             if url.endswith(path_suffix):
                 status_code = response_tuple[0]
@@ -237,10 +237,17 @@ def test_dapi_server_response():
     errors = {"loc_1": "error_1", "loc_2": "error_2"}
     response = DAPIServerResponse(
         status_code=200,
-        error=True,
+        server_meta=DAPIServerMeta(
+            name="custom-dapi-server",
+            url="https://opendapi.org",
+            github_user_name="github-user",
+            github_user_email="my_email",
+        ),
         text="error message",
         markdown="markdown message",
-        json={"info": info, "suggestions": suggestions, "errors": errors},
+        info=info,
+        suggestions=suggestions,
+        errors=errors,
     )
     assert response.status_code == 200
     assert response.errors == errors
@@ -252,19 +259,25 @@ def test_dapi_server_response():
     other_errors = {"loc_3": "error_3"}
     other_response = DAPIServerResponse(
         status_code=404,
-        error=False,
+        server_meta=DAPIServerMeta(
+            name="other-dapi-server",
+            url="https://opendapi.org",
+            github_user_name="github-user",
+            github_user_email="my_email",
+        ),
         text="error message2",
         markdown="markdown message",
-        json={
-            "info": other_info,
-            "suggestions": other_suggestions,
-            "errors": other_errors,
-        },
+        info=other_info,
+        suggestions=other_suggestions,
+        errors=other_errors,
     )
     merged_response = response.merge(other_response)
     assert merged_response.status_code == 404
     # OR of errors
     assert merged_response.error is True
+
+    # server meta from mergee (other_response) takes precedence
+    assert merged_response.server_meta.name == "other-dapi-server"
 
     # merge dicts of errors, info, suggestions
     assert merged_response.errors == {**errors, **other_errors}
@@ -274,6 +287,26 @@ def test_dapi_server_response():
     assert merged_response.markdown == "markdown message"
     # if messages are different, show both
     assert merged_response.text == "error message\n\nerror message2"
+
+    # Test other edge cases
+    other_response_2 = DAPIServerResponse(
+        status_code=400,
+        server_meta=DAPIServerMeta(
+            name="other-dapi-server",
+            url="https://opendapi.org",
+            github_user_name="github-user",
+            github_user_email="my_email",
+        ),
+        text=None,
+        markdown="markdown message",
+        info=None,
+        suggestions=other_suggestions,
+        errors=other_errors,
+    )
+    merged_response = response.merge(other_response_2)
+    assert merged_response.status_code == 400
+    assert merged_response.error is True
+    assert merged_response.text == "error message"
 
 
 def test_dapi_server_adapter_init(
@@ -418,12 +451,16 @@ def test_create_suggestions_pull_request_writes_to_file(
     adapter.create_suggestions_pull_request(
         server_response=DAPIServerResponse(
             status_code=200,
-            json={
-                "suggestions": {
-                    "2.dapi.yaml": {"a": "b"},
-                    "2.dapi.json": {"c": "d"},
-                    "2.txt": {"e": "f"},
-                }
+            server_meta=DAPIServerMeta(
+                name="custom-dapi-server",
+                url="https://opendapi.org",
+                github_user_name="github-user",
+                github_user_email="my_email",
+            ),
+            suggestions={
+                "2.dapi.yaml": {"a": "b"},
+                "2.dapi.json": {"c": "d"},
+                "2.txt": {"e": "f"},
             },
         ),
         message="Test message",
@@ -455,7 +492,7 @@ def test_dapi_server_adapter_validate(
                 {
                     "text": "Validation successful",
                     "md": "Validation successful",
-                    "json": {"success": True},
+                    "success": True,
                 },
             )
         },
@@ -514,12 +551,16 @@ def test_dapi_server_adapter_validate_returns_error_message(
                 {
                     "text": "Validation failed",
                     "md": "Validation failed",
-                    "json": {"success": False, "error": True},
+                    "success": False,
+                    "errors": {
+                        "path/to/dapi.yaml": "Error message",
+                    },
                 },
             )
         },
     )
-    adapter.validate()
+    resp = adapter.validate()
+    adapter.add_action_summary(resp)
     assert mock_post.called
 
 
@@ -545,13 +586,14 @@ def test_dapi_server_adapter_register(
                 {
                     "text": "Registration successful",
                     "md": "Registration successful",
-                    "json": {"success": True},
+                    "success": True,
                 },
             )
         },
     )
 
-    adapter.register()
+    resp = adapter.register()
+    adapter.add_action_summary(resp)
 
     assert mock_post.called
     _, kwargs = mock_post.call_args
@@ -583,7 +625,7 @@ def test_dapi_server_adapter_register_only_when_appropriate(
                 {
                     "text": "Registration successful",
                     "md": "Registration successful",
-                    "json": {"success": True},
+                    "success": True,
                 },
             )
         },
@@ -613,7 +655,7 @@ def test_dapi_server_adapter_analyze_impact(
                 {
                     "text": "Impact analysis successful",
                     "md": "Impact analysis successful",
-                    "json": {"success": True},
+                    "success": True,
                 },
             )
         },
@@ -649,7 +691,7 @@ def test_dapi_server_adapter_retrieve_stats(
                 {
                     "text": "Stats retrieved successfully",
                     "md": "Stats retrieved successfully",
-                    "json": {"success": True},
+                    "success": True,
                 },
             )
         },
@@ -684,7 +726,7 @@ def test_run_with_push_event(
             "/validate": (
                 200,
                 {
-                    "json": {"success": True},
+                    "success": True,
                     "text": "Validation successful",
                     "md": "Validation successful",
                 },
@@ -692,7 +734,7 @@ def test_run_with_push_event(
             "/register": (
                 200,
                 {
-                    "json": {"success": True},
+                    "success": True,
                     "text": "Registration successful",
                     "md": "Registration successful",
                 },
@@ -700,7 +742,7 @@ def test_run_with_push_event(
             "/impact": (
                 200,
                 {
-                    "json": {"success": True},
+                    "success": True,
                     "text": "Impact analysis successful",
                     "md": "Impact analysis successful",
                     "error": True,
@@ -709,13 +751,13 @@ def test_run_with_push_event(
             "/stats": (
                 200,
                 {
-                    "json": {"success": True},
+                    "success": True,
                     "text": "Stats retrieved successfully",
                     "md": "Stats retrieved successfully",
                 },
             ),
-            "/pulls": (200, {"json": {"success": True}}),
-            "/comments": (200, {"json": {"success": True}}),
+            "/pulls": (200, {"success": True}),
+            "/comments": (200, {"success": True}),
         },
     )
     adapter.run()
@@ -745,7 +787,7 @@ def test_run_with_pull_request_event(
             "/validate": (
                 200,
                 {
-                    "json": {"success": True},
+                    "success": True,
                     "text": "Validation successful",
                     "md": "Validation successful",
                 },
@@ -753,7 +795,7 @@ def test_run_with_pull_request_event(
             "/register": (
                 200,
                 {
-                    "json": {"success": True},
+                    "success": True,
                     "text": "Registration successful",
                     "md": "Registration successful",
                 },
@@ -761,7 +803,7 @@ def test_run_with_pull_request_event(
             "/impact": (
                 200,
                 {
-                    "json": {"success": True},
+                    "success": True,
                     "text": "Impact analysis successful",
                     "md": "Impact analysis successful",
                 },
@@ -769,13 +811,13 @@ def test_run_with_pull_request_event(
             "/stats": (
                 200,
                 {
-                    "json": {"success": True},
+                    "success": True,
                     "text": "Stats retrieved successfully",
                     "md": "Stats retrieved successfully",
                 },
             ),
             "/pulls": (200, {"number": 1}),
-            "/comments": (200, {"json": {"success": True}}),
+            "/comments": (200, {"success": True}),
         },
     )
     m_requests_get = mock_requests(
@@ -815,12 +857,10 @@ def test_run_with_pull_request_event_existing_suggestions_pr(
             "/validate": (
                 200,
                 {
-                    "json": {
-                        "success": True,
-                        "suggestions": {
-                            "1.dapi.yaml": "suggestion1",
-                            "2.dapi.yaml": "suggestion2",
-                        },
+                    "success": True,
+                    "suggestions": {
+                        "1.dapi.yaml": "suggestion1",
+                        "2.dapi.yaml": "suggestion2",
                     },
                     "text": "Validation successful",
                     "md": "Validation successful",
@@ -829,7 +869,7 @@ def test_run_with_pull_request_event_existing_suggestions_pr(
             "/register": (
                 200,
                 {
-                    "json": {"success": True},
+                    "success": True,
                     "text": "Registration successful",
                     "md": "Registration successful",
                 },
@@ -837,7 +877,7 @@ def test_run_with_pull_request_event_existing_suggestions_pr(
             "/impact": (
                 200,
                 {
-                    "json": {"success": True},
+                    "success": True,
                     "text": "Impact analysis successful",
                     "md": "Impact analysis successful",
                 },
@@ -845,13 +885,13 @@ def test_run_with_pull_request_event_existing_suggestions_pr(
             "/stats": (
                 200,
                 {
-                    "json": {"success": True},
+                    "success": True,
                     "text": "Stats retrieved successfully",
                     "md": "Stats retrieved successfully",
                 },
             ),
             "/pulls": (200, {"number": 1}),
-            "/comments": (200, {"json": {"success": True}}),
+            "/comments": (200, {"success": True}),
         },
     )
 
@@ -904,12 +944,10 @@ def test_run_with_pull_request_event_no_suggestions(
             "/validate": (
                 200,
                 {
-                    "json": {
-                        "success": True,
-                        "suggestions": {
-                            "1.dapi.yaml": "suggestion1",
-                            "2.dapi.yaml": "suggestion2",
-                        },
+                    "success": True,
+                    "suggestions": {
+                        "1.dapi.yaml": "suggestion1",
+                        "2.dapi.yaml": "suggestion2",
                     },
                     "text": "Validation successful",
                     "md": "Validation successful",
@@ -918,7 +956,7 @@ def test_run_with_pull_request_event_no_suggestions(
             "/register": (
                 200,
                 {
-                    "json": {"success": True},
+                    "success": True,
                     "text": "Registration successful",
                     "md": "Registration successful",
                 },
@@ -926,7 +964,7 @@ def test_run_with_pull_request_event_no_suggestions(
             "/impact": (
                 200,
                 {
-                    "json": {"success": True},
+                    "success": True,
                     "text": "Impact analysis successful",
                     "md": "Impact analysis successful",
                 },
@@ -934,13 +972,13 @@ def test_run_with_pull_request_event_no_suggestions(
             "/stats": (
                 200,
                 {
-                    "json": {"success": True},
+                    "success": True,
                     "text": "Stats retrieved successfully",
                     "md": "Stats retrieved successfully",
                 },
             ),
             "/pulls": (200, {"number": 1}),
-            "/comments": (200, {"json": {"success": True}}),
+            "/comments": (200, {"success": True}),
         },
     )
 
