@@ -111,8 +111,8 @@ class SetupContext:  # pylint: disable=too-many-instance-attributes
     domain: str = None
     dapis: str = None
     slack: str = None
-    teams: set[str] = None
-    datastores: set[str] = None
+    teams: set = None
+    datastores: set = None
     snowflake_ns: str = None
 
 
