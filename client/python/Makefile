@@ -34,7 +34,7 @@ security:
 	poetry run bandit --version
 	poetry run bandit -r ${APP_PATH}
 
-precommit_ci: requirements format test lint formatcheck security
+precommit_ci: format test lint formatcheck security
 ci: requirements test lint formatcheck security
 
 .PHONY: requirements test lint format formatcheck security ci

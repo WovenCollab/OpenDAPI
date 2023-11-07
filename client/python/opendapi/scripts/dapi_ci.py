@@ -42,8 +42,18 @@ class DAPIServerConfig:
     mainline_branch_name: str
     register_on_merge_to_mainline: bool
     suggest_changes: bool = True
-    display_dapi_stats: bool = True
+    display_dapi_stats: bool = False
     validate_dapi_individually: bool = True
+
+
+@dataclass
+class DAPIServerMeta:
+    """Metadata about the DAPI server"""
+
+    name: str
+    url: str
+    github_user_name: str
+    github_user_email: str
 
 
 @dataclass
@@ -51,30 +61,25 @@ class DAPIServerResponse:
     """DAPI server Response formatted"""
 
     status_code: int
-    error: Optional[str] = None
-    json: Optional[Dict] = None
+    server_meta: DAPIServerMeta
+    suggestions: Optional[Dict] = None
+    info: Optional[Dict] = None
+    errors: Optional[Dict] = None
     text: Optional[str] = None
     markdown: Optional[str] = None
 
     @property
-    def suggestions(self) -> List[Dict]:
-        """Get suggestions from the response."""
-        return self.json.get("suggestions", {})
-
-    @property
-    def errors(self) -> List[Dict]:
-        """Get errors from the response."""
-        return self.json.get("errors", {})
-
-    @property
-    def info(self) -> List[Dict]:
-        """Get info from the response."""
-        return self.json.get("info", {})
+    def error(self) -> bool:
+        """Check if there is an error in the response."""
+        return self.errors is not None and len(self.errors) > 0
 
     def merge(self, other: "DAPIServerResponse") -> "DAPIServerResponse":
         """Merge two responses."""
 
         def merge_text_fn(this_text, other_text):
+            if not this_text or not other_text:
+                return other_text or this_text
+
             return (
                 "\n\n".join([this_text, other_text])
                 if this_text != other_text
@@ -82,12 +87,17 @@ class DAPIServerResponse:
             )
 
         def merge_dict(this_dict, other_dict):
+            if not this_dict or not other_dict:
+                return other_dict or this_dict
+
             return always_merger.merge(this_dict, other_dict)
 
         return DAPIServerResponse(
             status_code=other.status_code or self.status_code,
-            error=other.error or self.error,
-            json=merge_dict(self.json, other.json),
+            server_meta=other.server_meta or self.server_meta,
+            errors=merge_dict(self.errors, other.errors),
+            suggestions=merge_dict(self.suggestions, other.suggestions),
+            info=merge_dict(self.info, other.info),
             text=merge_text_fn(self.text, other.text),
             markdown=merge_text_fn(self.markdown, other.markdown),
         )
@@ -305,26 +315,50 @@ class DAPIServerAdapter:
 
         message = response.json()
 
+        server_meta = message.get("server_meta", {})
+
         return DAPIServerResponse(
             status_code=response.status_code,
-            error=message.get("error"),
+            server_meta=DAPIServerMeta(
+                name=server_meta.get("name", "DAPI Server"),
+                url=server_meta.get("url", "https://opendapi.org"),
+                github_user_name=server_meta.get("github_user_name", "github-actions"),
+                github_user_email=server_meta.get(
+                    "github_user_email", "github-actions@github.com"
+                ),
+            ),
+            errors=message.get("errors"),
+            suggestions=message.get("suggestions"),
+            info=message.get("info"),
             markdown=message.get("md"),
             text=message.get("text"),
-            json=message.get("json"),
         )
 
     def create_suggestions_pull_request(
         self, server_response: DAPIServerResponse, message: str
     ) -> Optional[int]:
         """Add suggestions as a commit."""
-        suggestions = server_response.suggestions
+        suggestions = server_response.suggestions or {}
+        server_name = server_response.server_meta.name
 
         # Set git config
         self._run_git_command(
-            ["git", "config", "--global", "user.email", "github-actions@github.com"]
+            [
+                "git",
+                "config",
+                "--global",
+                "user.email",
+                server_response.server_meta.github_user_email,
+            ]
         )
         self._run_git_command(
-            ["git", "config", "--global", "user.name", "github-actions"]
+            [
+                "git",
+                "config",
+                "--global",
+                "user.name",
+                server_response.server_meta.github_user_name,
+            ]
         )
 
         # Get current branch name
@@ -336,7 +370,8 @@ class DAPIServerAdapter:
 
         # Identify an unique branch name for this Pull request
         autoupdate_branch_name = (
-            f"opendapi-autoupdate/{self.trigger_event.pull_request_number}"
+            f"{server_name}-opendapi-autoupdate"
+            f"/{self.trigger_event.pull_request_number}"
         )
 
         # Checkout a branch for this Pull request to make the changes if one doesn't exist
@@ -379,8 +414,15 @@ class DAPIServerAdapter:
         )
 
         suggestions_pr_number = self.create_or_update_pull_request(
-            title=f"OpenDAPI Autoupdate for #{self.trigger_event.pull_request_number}",
-            body="This is an automated pull request to update the OpenDAPI files.",
+            title=(
+                f"{server_name} OpenDAPI Autoupdate "
+                f"for #{self.trigger_event.pull_request_number}"
+            ),
+            body=(
+                "This is an automated pull request "
+                f"to update the OpenDAPI files created by {server_name}."
+                "Please review and merge if it looks good."
+            ),
             base=current_branch_name,
             head=autoupdate_branch_name,
         )
@@ -395,15 +437,16 @@ class DAPIServerAdapter:
         if resp.error:
             self.display_markdown_summary("There were errors")
 
-        if resp.markdown:
-            self.display_markdown_summary(resp.markdown)
-        else:
-            self.display_markdown_summary(resp.text)
+        self.display_markdown_summary(resp.markdown or resp.text)
 
-        if resp.json:
-            self.display_markdown_summary(
-                f"```json\n{json.dumps(resp.json, indent=2)}\n```"
-            )
+        display_json = {
+            "errors": resp.errors,
+            "suggestions": resp.suggestions,
+            "info": resp.info,
+        }
+        self.display_markdown_summary(
+            f"```json\n{json.dumps(display_json, indent=2)}\n```"
+        )
 
     def validate(self) -> DAPIServerResponse:
         """Validate OpenDAPI files with the DAPI Server."""
@@ -431,7 +474,11 @@ class DAPIServerAdapter:
                         "teams": {},
                         "datastores": {},
                         "purposes": {},
-                        "suggest_changes": self.dapi_server_config.suggest_changes,
+                        # Suggestions are needed only when the DAPI was touched in this PR
+                        "suggest_changes": (
+                            self.dapi_server_config.suggest_changes
+                            and dapi_loc in self.changed_files.for_server()["dapis"]
+                        ),
                     },
                 )
                 resp = resp.merge(this_resp)
@@ -451,10 +498,10 @@ class DAPIServerAdapter:
         )
         return False
 
-    def register(self) -> DAPIServerResponse:
+    def register(self) -> Optional[DAPIServerResponse]:
         """Register OpenDAPI files with the DAPI Server."""
         if not self.should_register():
-            return DAPIServerResponse(status_code=200)
+            return None
 
         all_files = self.all_files.for_server()
         return self.ask_dapi_server(
@@ -513,7 +560,8 @@ class DAPIServerAdapter:
 
         self.display_markdown_summary("## Step 2: Registering...")
         register_resp = self.register()
-        self.add_action_summary(register_resp)
+        if register_resp:
+            self.add_action_summary(register_resp)
 
         self.display_markdown_summary("## Step 3: Analyzing impact of changes...")
         impact_resp = self.analyze_impact()
@@ -526,10 +574,13 @@ class DAPIServerAdapter:
 
         # Construct and add summary response as a Pull request comment
         if self.trigger_event.event_type == "pull_request":
-            pr_comment_md = "## OpenDAPI Actions\n"
+            pr_comment_md = f"## {validate_resp.server_meta.name} OpenDAPI Actions\n"
             if suggestions_pr_number:
                 pr_comment_md += "### Suggestions\n"
-                pr_comment_md += f"See #{suggestions_pr_number} for suggestions."
+                pr_comment_md += (
+                    "We have some suggestions for you. "
+                    f"Please review #{suggestions_pr_number} and merge into this Pull Request."
+                )
                 pr_comment_md += "\n\n"
             if validate_resp.markdown:
                 pr_comment_md += "### Validating OpenDAPI files\n"
