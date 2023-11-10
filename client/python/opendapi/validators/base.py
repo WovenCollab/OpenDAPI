@@ -197,16 +197,16 @@ class BaseValidator:
                 # Move on if the content is the same
                 if self.parsed_files[file] == new_content:
                     continue
-                # Autoupdate is not allowed during CI
-                if not self.is_autoupdate_allowed:
-                    raise ValidationError(
-                        f"OpenDapi {self.__class__.__name__} error: "
-                        f"File {file} is not up to date and cannot be autoupdated during CI. "
-                        f"Run OpenDAPI validators locally to update the file."
-                    )
             else:
                 new_content = content
 
+            # Autoupdate is not allowed during CI
+            if not self.is_autoupdate_allowed:
+                raise ValidationError(
+                    f"OpenDapi {self.__class__.__name__} error: "
+                    f"File {file} is not up to date and cannot be autoupdated during CI. "
+                    f"Run OpenDAPI validators locally to update the file."
+                )
             # Create the directory if it does not exist
             dir_name = os.path.dirname(file)
             os.makedirs(dir_name, exist_ok=True)

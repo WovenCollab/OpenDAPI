@@ -1,6 +1,7 @@
 # pylint: disable=protected-access
 """Tests for the DAPI validator"""
 
+import os
 import inspect
 import pytest
 
@@ -226,6 +227,7 @@ class TestPynamodbDapiValidator:
 
     def test_autoupdate(self, temp_directory, mocker):
         """Test if the autoupdate works"""
+        mocker.patch.dict(os.environ, {"CI": "false"})
         mock_open = mocker.patch("builtins.open", mocker.mock_open())
         dapi_validator = self.MyPynamodbDapiValidator(temp_directory)
         # Mock since we use tmp directory
@@ -384,6 +386,7 @@ class TestSqlAlchemyDapiValidator:
 
     def test_autoupdate(self, temp_directory, mocker):
         """Test if the autoupdate works"""
+        mocker.patch.dict(os.environ, {"CI": "false"})
         mock_open = mocker.patch("builtins.open", mocker.mock_open())
         dapi_validator = self.MySqlAlchemyDapiValidator(temp_directory)
         mock_yaml_dump = mocker.patch.object(dapi_validator.yaml, "dump")
