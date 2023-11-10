@@ -292,6 +292,8 @@ def test_validate_collects_errors(temp_directory, mocker):
 
 def test_autoupdate(temp_directory, mocker):
     """Test BaseValidator.autoupdate method"""
+    # To override in CI environments
+    mocker.patch.dict(os.environ, {"CI": "false"})
     validator = BaseValidatorForTesting(
         temp_directory, enforce_existence=True, should_autoupdate=True
     )
