@@ -617,7 +617,7 @@ class DAPIServerAdapter:
                     ' width="30" valign="middle"/>'
                 )
             pr_comment_md += (
-                f"{validate_resp.server_meta.name}</a> Data Documentation AI\n"
+                f"{validate_resp.server_meta.name} Data Documentation AI</a>\n"
             )
 
             # Suggestions

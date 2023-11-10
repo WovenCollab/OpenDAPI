@@ -18,7 +18,7 @@ inputs:
     default: True
   SUGGEST_CHANGES:
     description: 'Should we suggest changes powered by AI?'
-    default: False
+    default: True
   OPENDAPI_CLIENT_VERSION:
     description: 'The version of the OpenDAPI Client to use'
     default: 'stable'
