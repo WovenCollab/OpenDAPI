@@ -1,3 +1,4 @@
+# pylint: disable=too-many-instance-attributes
 """Python script to Validate, Register and analyze impact of DAPIs with a DAPI Server."""
 
 import json
@@ -28,6 +29,7 @@ class ChangeTriggerEvent:
     before_change_sha: str
     after_change_sha: str
     repo_api_url: str
+    repo_html_url: str
     repo_owner: str
     git_ref: str = None
     pull_request_number: Optional[int] = None
@@ -54,6 +56,8 @@ class DAPIServerMeta:
     url: str
     github_user_name: str
     github_user_email: str
+    logo_url: Optional[str] = None
+    suggestions_cta_url: Optional[str] = None
 
 
 @dataclass
@@ -136,6 +140,14 @@ class OpenDAPIFileContents:
                 for location, json_content in contents.items()
             }
         return result
+
+    @property
+    def is_empty(self):
+        """Check if the contents are empty."""
+        for val in self.contents_as_dict().values():
+            if len(val) > 0:
+                return False
+        return True
 
 
 class DAPIServerAdapter:
@@ -266,7 +278,11 @@ class DAPIServerAdapter:
         # Check if a pull request already exists for this branch using list pull requests
         pull_requests = self.ask_github(
             "pulls",
-            {"head": f"{self.trigger_event.repo_owner}:{head}", "base": base},
+            {
+                "head": f"{self.trigger_event.repo_owner}:{head}",
+                "base": base,
+                "state": "open",
+            },
             is_post=False,
         )
 
@@ -326,6 +342,8 @@ class DAPIServerAdapter:
                 github_user_email=server_meta.get(
                     "github_user_email", "github-actions@github.com"
                 ),
+                logo_url=server_meta.get("logo_url"),
+                suggestions_cta_url=server_meta.get("suggestions_cta_url"),
             ),
             errors=message.get("errors"),
             suggestions=message.get("suggestions"),
@@ -413,16 +431,26 @@ class DAPIServerAdapter:
             ["git", "push", "-f", "origin", f"HEAD:refs/heads/{autoupdate_branch_name}"]
         )
 
+        body = "## "
+        if server_response.server_meta.logo_url:
+            body += (
+                f'<img src="{server_response.server_meta.logo_url}" '
+                'width="30" valign="middle"/> '
+            )
+        body += f"{server_response.server_meta.name} AI\n"
+
+        body += (
+            f"We identified data model changes in #{self.trigger_event.pull_request_number} "
+            "and generated updated data documentation for you\n\n. "
+            "Please review and merge if this looks good.\n\n"
+        )
+
         suggestions_pr_number = self.create_or_update_pull_request(
             title=(
-                f"{server_name} OpenDAPI Autoupdate "
+                f"{server_name} data documentation updates "
                 f"for #{self.trigger_event.pull_request_number}"
             ),
-            body=(
-                "This is an automated pull request "
-                f"to update the OpenDAPI files created by {server_name}."
-                "Please review and merge if it looks good."
-            ),
+            body=body,
             base=current_branch_name,
             head=autoupdate_branch_name,
         )
@@ -512,6 +540,8 @@ class DAPIServerAdapter:
                 "datastores": all_files["datastores"],
                 "purposes": all_files["purposes"],
                 "commit_hash": self.trigger_event.after_change_sha,
+                "source": self.trigger_event.repo_html_url,
+                "unregister_missing_from_source": True,
             },
         )
 
@@ -543,7 +573,15 @@ class DAPIServerAdapter:
 
     def run(self):
         """Run the action."""
-        self.display_markdown_summary("## Step 1: Validating OpenDAPI files...")
+        print(self.all_files.is_empty, self.changed_files.is_empty)
+        # Handle no OpenDAPI files or no changes to OpenDAPI files
+        if self.all_files.is_empty or self.changed_files.is_empty:
+            self.display_markdown_summary(
+                "No OpenDAPI files or changes found. "
+                "Check out https://opendapi.org to get started."
+            )
+            return
+
         validate_resp = self.validate()
         self.add_action_summary(validate_resp)
 
@@ -558,46 +596,63 @@ class DAPIServerAdapter:
         else:
             suggestions_pr_number = None
 
-        self.display_markdown_summary("## Step 2: Registering...")
         register_resp = self.register()
         if register_resp:
             self.add_action_summary(register_resp)
 
-        self.display_markdown_summary("## Step 3: Analyzing impact of changes...")
         impact_resp = self.analyze_impact()
         self.add_action_summary(impact_resp)
 
         if self.dapi_server_config.display_dapi_stats:
-            self.display_markdown_summary("## Step 4: Retrieving stats for DAPIs...")
             stats_resp = self.retrieve_stats()
             self.add_action_summary(stats_resp)
 
         # Construct and add summary response as a Pull request comment
         if self.trigger_event.event_type == "pull_request":
-            pr_comment_md = f"## {validate_resp.server_meta.name} OpenDAPI Actions\n"
-            if suggestions_pr_number:
-                pr_comment_md += "### Suggestions\n"
+            # Title
+            pr_comment_md = "## "
+            if validate_resp.server_meta.logo_url:
                 pr_comment_md += (
-                    "We have some suggestions for you. "
+                    f'<img src="{validate_resp.server_meta.logo_url}"'
+                    ' width="30" valign="middle"/> '
+                )
+            pr_comment_md += f"{validate_resp.server_meta.name} AI\n"
+
+            # Suggestions
+            if suggestions_pr_number:
+                pr_comment_md += (
+                    "### :heart: Great looking PR! Review your data model changes\n"
+                )
+                pr_comment_md += (
+                    "We noticed some data model changes and "
+                    "generated updated data documentation for you."
+                    "We have some suggestions for you.\n"
                     f"Please review #{suggestions_pr_number} and merge into this Pull Request."
                 )
-                pr_comment_md += "\n\n"
+                pr_comment_md += (
+                    f'<a href="{self.trigger_event.repo_html_url}/pull/{suggestions_pr_number}">'
+                    f'<img src="{validate_resp.server_meta.suggestions_cta_url}" width="140"/>'
+                    "</a>"
+                    "\n<hr>\n"
+                )
+
+            # Validation Response
             if validate_resp.markdown:
-                pr_comment_md += "### Validating OpenDAPI files\n"
                 pr_comment_md += validate_resp.markdown
-                pr_comment_md += "\n\n"
+                pr_comment_md += "\n<hr>\n"
 
             # No registration response for Pull requests
-            if impact_resp.markdown:
-                pr_comment_md += "### Analyzing impact on DAPI changes\n"
-                pr_comment_md += impact_resp.markdown
-                pr_comment_md += "\n\n"
 
+            # Impact Response
+            if impact_resp.markdown:
+                pr_comment_md += impact_resp.markdown
+
+            # Stats Response
             if self.dapi_server_config.display_dapi_stats:
+                pr_comment_md += "\n<hr>\n"
                 if stats_resp.markdown:
                     pr_comment_md += "### DAPI stats\n"
                     pr_comment_md += stats_resp.markdown
-                    pr_comment_md += "\n\n"
 
             self.add_pull_request_comment(pr_comment_md)
 
@@ -629,6 +684,7 @@ def main():
     change_trigger_event = ChangeTriggerEvent(
         event_type=gh_context["event_name"],
         repo_api_url=gh_context["event"]["repository"]["url"],
+        repo_html_url=gh_context["event"]["repository"]["html_url"],
         repo_owner=gh_context["event"]["repository"]["owner"]["login"],
         before_change_sha=gh_context["event"]["before"]
         if gh_context["event_name"] == "push"
