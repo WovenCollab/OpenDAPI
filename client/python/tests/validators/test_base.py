@@ -1,6 +1,7 @@
 # pylint: disable=protected-access, no-member, abstract-method, invalid-name
 """Tests for opendapi.validators.base module"""
 
+import os
 import pytest
 
 from pytest_mock import MockFixture
@@ -353,6 +354,80 @@ def test_autoupdate(temp_directory, mocker):
             ),
         ]
     )
+
+
+def test_autoupdate_doesnt_write_if_no_changes(temp_directory, mocker):
+    """Test BaseValidator.autoupdate method with no changes"""
+    for is_autoupdate_allowed in [True, False]:
+        mocker.patch.dict(os.environ, {"CI": str(is_autoupdate_allowed)})
+        validator = BaseValidatorForTesting(
+            temp_directory, enforce_existence=True, should_autoupdate=True
+        )
+        validator.parsed_files = {
+            f"{temp_directory}/dummy.yaml": {
+                "name": "dummy_new",
+                "list": ["1", "2"],
+                "listdict": [{"1": "one"}, {"2": "two"}],
+                "listuniquedict": [{"name": "one"}, {"name": "one"}, {"name": "two"}],
+            },
+        }
+        mocker.patch.object(
+            validator,
+            "base_template_for_autoupdate",
+            return_value={
+                f"{temp_directory}/dummy.yaml": {
+                    "name": "dummy_new",
+                    "list": ["1", "2"],
+                    "listdict": [{"1": "one"}, {"2": "two"}],
+                    "listuniquedict": [
+                        {"name": "one"},
+                        {"name": "one"},
+                        {"name": "two"},
+                    ],
+                },
+            },
+        )
+        mock_open = mocker.mock_open()
+        mocker.patch("builtins.open", mock_open)
+        mock_yaml_dump = mocker.patch.object(validator.yaml, "dump")
+        validator.autoupdate()
+        mock_open.assert_not_called()
+        mock_yaml_dump.assert_not_called()
+
+
+def test_autoupdate_raises_error_if_not_allowed_in_CI(temp_directory, mocker):
+    """Test BaseValidator.autoupdate raises error when not allowed in CI"""
+    mocker.patch.dict(os.environ, {"CI": "True"})
+    validator = BaseValidatorForTesting(
+        temp_directory, enforce_existence=True, should_autoupdate=True
+    )
+    validator.parsed_files = {
+        f"{temp_directory}/dummy.yaml": {
+            "name": "dummy_new",
+            "list": ["1", "2"],
+            "listdict": [{"1": "one"}, {"2": "two"}],
+            "listuniquedict": [{"name": "one"}, {"name": "one"}, {"name": "two"}],
+        },
+    }
+    mocker.patch.object(
+        validator,
+        "base_template_for_autoupdate",
+        return_value={
+            f"{temp_directory}/dummy.yaml": {
+                "name": "dummy",
+                "list": ["1"],
+                "listdict": [{"1": "one"}],
+                "listuniquedict": [{"name": "one"}],
+            },
+        },
+    )
+    mock_open = mocker.mock_open()
+    mocker.patch("builtins.open", mock_open)
+    mock_yaml_dump = mocker.patch.object(validator.yaml, "dump")
+    with pytest.raises(ValidationError, match="cannot be autoupdated during CI"):
+        validator.autoupdate()
+    mock_open.assert_not_called()
+    mock_yaml_dump.assert_not_called()
 
 
 def test_autoupdate_fails_without_base_template(temp_directory):
