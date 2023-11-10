@@ -639,7 +639,7 @@ class DAPIServerAdapter:
             # Validation Response
             if validate_resp.markdown:
                 pr_comment_md += validate_resp.markdown
-                pr_comment_md += "\n<hr>\n"
+                pr_comment_md += "\n\n<hr>\n\n"
 
             # No registration response for Pull requests
 
@@ -649,9 +649,8 @@ class DAPIServerAdapter:
 
             # Stats Response
             if self.dapi_server_config.display_dapi_stats:
-                pr_comment_md += "\n<hr>\n"
+                pr_comment_md += "\n\n<hr>\n\n"
                 if stats_resp.markdown:
-                    pr_comment_md += "### DAPI stats\n"
                     pr_comment_md += stats_resp.markdown
 
             self.add_pull_request_comment(pr_comment_md)
