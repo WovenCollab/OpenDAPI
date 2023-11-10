@@ -19,6 +19,9 @@ inputs:
   SUGGEST_CHANGES:
     description: 'Should we suggest changes powered by AI?'
     default: False
+  OPENDAPI_CLIENT_VERSION:
+    description: 'The version of the OpenDAPI Client to use'
+    default: 'stable'
 
 runs:
   using: 'composite'
@@ -42,7 +45,7 @@ runs:
         python3 -m venv .env
         source .env/bin/activate
         python -m pip install --upgrade pip
-        pip install git+https://github.com/WovenCollab/OpenDAPI.git@main#subdirectory=client/python
+        pip install git+https://github.com/WovenCollab/OpenDAPI.git@${{ inputs.OPENDAPI_CLIENT_VERSION }}#subdirectory=client/python
 
     - name: Run DAPI CI
       shell: bash

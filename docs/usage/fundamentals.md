@@ -1,3 +1,9 @@
+---
+layout: page
+title: Fundamentals
+permalink: /usage/fundamentals/
+---
+
 # OpenDAPI Fundamentals
 
 Every dataset needs a DAPI file. Dataset is loosely defined and can be anything - entity, event or other package of information accessible in a storage system.

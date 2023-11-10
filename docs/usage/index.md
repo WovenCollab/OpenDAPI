@@ -1,3 +1,9 @@
+---
+layout: page
+title: Quickstart
+permalink: /usage/
+---
+
 # Quickstart
 
 In this guide, we will help you get started with OpenDAPI. We will cover how to

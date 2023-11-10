@@ -76,6 +76,13 @@ def copy_specs_by_version(src_dir, dest_dir, allow_overwrite=False, ignore_missi
 def list_files_in_markdown_file(dest_dir: str, markdown_file_name: str):
   """List the files in the destination directory to a markdown file"""
   with open(os.path.join(dest_dir, markdown_file_name), 'w') as file:
+    file.write(
+      "---\n"
+      "layout: page\n"
+      "title: Spec\n"
+      "permalink: /spec/\n"
+      "---\n"
+    )
     file.write("# OpenDAPI JSON Schema Specifications")
     file.write("\n\n")
     versions_list = os.listdir(dest_dir)

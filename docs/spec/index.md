@@ -1,3 +1,8 @@
+---
+layout: page
+title: Spec
+permalink: /spec/
+---
 # OpenDAPI JSON Schema Specifications
 
 ## 0-0-1
