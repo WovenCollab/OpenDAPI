@@ -573,7 +573,6 @@ class DAPIServerAdapter:
 
     def run(self):
         """Run the action."""
-        print(self.all_files.is_empty, self.changed_files.is_empty)
         # Handle no OpenDAPI files or no changes to OpenDAPI files
         if self.all_files.is_empty or self.changed_files.is_empty:
             self.display_markdown_summary(
@@ -611,12 +610,15 @@ class DAPIServerAdapter:
         if self.trigger_event.event_type == "pull_request":
             # Title
             pr_comment_md = "## "
+            pr_comment_md += f'<a href="{validate_resp.server_meta.url}">'
             if validate_resp.server_meta.logo_url:
                 pr_comment_md += (
                     f'<img src="{validate_resp.server_meta.logo_url}"'
-                    ' width="30" valign="middle"/> '
+                    ' width="30" valign="middle"/>'
                 )
-            pr_comment_md += f"{validate_resp.server_meta.name} AI\n"
+            pr_comment_md += (
+                f"{validate_resp.server_meta.name}</a> Data Documentation AI\n"
+            )
 
             # Suggestions
             if suggestions_pr_number:
