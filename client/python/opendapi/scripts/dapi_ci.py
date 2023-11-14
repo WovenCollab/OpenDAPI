@@ -34,6 +34,11 @@ class ChangeTriggerEvent:
     git_ref: str = None
     pull_request_number: Optional[int] = None
 
+    @property
+    def is_pull_request_event(self) -> bool:
+        """Check if the event is a pull request event"""
+        return self.event_type == "pull_request"
+
 
 @dataclass
 class DAPIServerConfig:
@@ -490,7 +495,10 @@ class DAPIServerAdapter:
                 "teams": all_files["teams"],
                 "datastores": all_files["datastores"],
                 "purposes": all_files["purposes"],
-                "suggest_changes": self.dapi_server_config.suggest_changes,
+                "suggest_changes": (
+                    self.dapi_server_config.suggest_changes
+                    and self.trigger_event.event_type == "pull_request"
+                ),
             },
         )
         if self.dapi_server_config.validate_dapi_individually:
@@ -506,6 +514,7 @@ class DAPIServerAdapter:
                         "suggest_changes": (
                             self.dapi_server_config.suggest_changes
                             and dapi_loc in self.changed_files.for_server()["dapis"]
+                            and self.trigger_event.event_type == "pull_request"
                         ),
                     },
                 )
