@@ -631,25 +631,25 @@ class DAPIServerAdapter:
                     ' width="30" valign="middle"/>'
                 )
             pr_comment_md += (
-                f"{validate_resp.server_meta.name} Data Documentation AI</a>\n"
+                f"  {validate_resp.server_meta.name} Data Documentation AI</a>\n\n"
             )
 
             # Suggestions
             if suggestions_pr_number:
                 pr_comment_md += (
-                    "### :heart: Great looking PR! Review your data model changes\n"
+                    "### :heart: Great looking PR! Review your data model changes\n\n"
                 )
                 pr_comment_md += (
                     "We noticed some data model changes and "
-                    "generated updated data documentation for you."
-                    "We have some suggestions for you.\n"
-                    f"Please review #{suggestions_pr_number} and merge into this Pull Request."
+                    "generated updated data documentation for you. "
+                    "We have some suggestions for you. "
+                    f"Please review #{suggestions_pr_number} and merge into this Pull Request.\n\n"
                 )
                 pr_comment_md += (
                     f'<a href="{self.trigger_event.repo_html_url}/pull/{suggestions_pr_number}">'
                     f'<img src="{validate_resp.server_meta.suggestions_cta_url}" width="140"/>'
                     "</a>"
-                    "\n<hr>\n"
+                    "\n\n<hr>\n\n"
                 )
 
             # Validation Response
