@@ -1,3 +1,8 @@
+---
+layout: page
+title: Advanced
+permalink: /usage/adavanced/
+---
 # Advanced Usage
 
 If the [simple use case](./index.md) does not meet your needs, you can create custom validators and use them in your runners.

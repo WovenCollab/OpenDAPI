@@ -56,6 +56,13 @@ class BaseValidator:
         self.root_dir = root_dir
         self.enforce_existence = enforce_existence
         self.should_autoupdate = should_autoupdate
+        self.is_autoupdate_allowed = os.environ.get("CI") not in [
+            "true",
+            "True",
+            True,
+            "1",
+            1,
+        ]
         if self.should_autoupdate and not self.enforce_existence:
             raise ValueError(
                 "should_autoupdate cannot be True if enforce_existence is False"
@@ -186,14 +193,26 @@ class BaseValidator:
             self._assert_dapi_location_is_valid(file)
             content = base_content
             if file in self.parsed_files:
-                content = self._get_merger().merge(content, self.parsed_files[file])
+                new_content = self._get_merger().merge(content, self.parsed_files[file])
+                # Move on if the content is the same
+                if self.parsed_files[file] == new_content:
+                    continue
+            else:
+                new_content = content
 
+            # Autoupdate is not allowed during CI
+            if not self.is_autoupdate_allowed:
+                raise ValidationError(
+                    f"OpenDapi {self.__class__.__name__} error: "
+                    f"File {file} is not up to date and cannot be autoupdated during CI. "
+                    f"Run OpenDAPI validators locally to update the file."
+                )
             # Create the directory if it does not exist
             dir_name = os.path.dirname(file)
             os.makedirs(dir_name, exist_ok=True)
 
             with open(file, "w", encoding="utf-8") as file_handle:
-                self.yaml.dump(content, file_handle)
+                self.yaml.dump(new_content, file_handle)
         self.parsed_files = self._get_file_contents_for_suffix(self.SUFFIX)
 
     def custom_content_validations(self, file: str, content: Dict):

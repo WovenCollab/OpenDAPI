@@ -43,7 +43,8 @@ def fixture_sample_dapi_ci_trigger_push(mocker):
         event_type="push",
         before_change_sha="before_sha",
         after_change_sha="after_sha",
-        repo_api_url="https://github.com/opendapi",
+        repo_api_url="https://api.github.com/opendapi",
+        repo_html_url="https://github.com/opendapi",
         repo_owner="opendapi",
         git_ref="refs/heads/main",
     )
@@ -56,7 +57,8 @@ def fixture_sample_dapi_ci_trigger_pull_request():
         event_type="pull_request",
         before_change_sha="before_sha",
         after_change_sha="after_sha",
-        repo_api_url="https://github.com/opendapi",
+        repo_api_url="https://api.github.com/opendapi",
+        repo_html_url="https://github.com/opendapi",
         repo_owner="opendapi",
         git_ref="refs/pull/1/merge",
         pull_request_number=123,
@@ -118,8 +120,9 @@ def mock_event(mocker, event_type: str):
     event_json = {
         "event_name": event_type,
         "repository": {
-            "url": "https://github.com/opendapi",
+            "url": "https://api.github.com/opendapi",
             "owner": {"login": "opendapi"},
+            "html_url": "https://github.com/opendapi",
         },
     }
     if event_type == "push":
@@ -242,6 +245,8 @@ def test_dapi_server_response():
             url="https://opendapi.org",
             github_user_name="github-user",
             github_user_email="my_email",
+            logo_url="https://opendapi.org/logo.png",
+            suggestions_cta_url="https://opendapi.org/suggestions.png",
         ),
         text="error message",
         markdown="markdown message",
@@ -456,6 +461,8 @@ def test_create_suggestions_pull_request_writes_to_file(
                 url="https://opendapi.org",
                 github_user_name="github-user",
                 github_user_email="my_email",
+                logo_url="https://opendapi.org/logo.png",
+                suggestions_cta_url="https://opendapi.org/suggestions.png",
             ),
             suggestions={
                 "2.dapi.yaml": {"a": "b"},
@@ -601,7 +608,12 @@ def test_dapi_server_adapter_register(
         key: sample_opendapi_file_contents.for_server()[key]
         for key in ["dapis", "teams", "datastores", "purposes"]
     }
-    assert kwargs["json"] == {"commit_hash": "after_sha", **expected}
+    assert kwargs["json"] == {
+        "commit_hash": "after_sha",
+        "source": "https://github.com/opendapi",
+        "unregister_missing_from_source": True,
+        **expected,
+    }
 
 
 def test_dapi_server_adapter_register_only_when_appropriate(
@@ -790,6 +802,14 @@ def test_run_with_pull_request_event(
                     "success": True,
                     "text": "Validation successful",
                     "md": "Validation successful",
+                    "server_meta": {
+                        "name": "custom-dapi-server",
+                        "url": "https://opendapi.org",
+                        "github_user_name": "github-user",
+                        "github_user_email": "my_email",
+                        "logo_url": "https://opendapi.org/logo.png",
+                        "suggestions_cta_url": "https://opendapi.org/suggestions.png",
+                    },
                 },
             ),
             "/register": (
@@ -1000,6 +1020,78 @@ def test_run_with_pull_request_event_no_suggestions(
     assert m_requests_post.call_count == 6
     # No call to get existing PRs for suggestions as there are no changes
     assert m_requests_get.call_count == 0
+
+
+def test_run_with_no_opendapi_files(
+    mocker,
+    sample_opendapi_file_contents,
+    sample_dapi_ci_server_config,
+    sample_dapi_ci_trigger_pull_request,
+):
+    """Test DAPIServerAdapter.run with no opendapi files"""
+    mocker.patch.object(
+        DAPIServerAdapter,
+        "get_all_opendapi_files",
+        return_value=OpenDAPIFileContents(
+            teams={},
+            datastores={},
+            purposes={},
+            dapis={},
+            root_dir="/path/to/repo",
+        ),
+    )
+    adapter = DAPIServerAdapter(
+        repo_root_dir="/path/to/repo",
+        dapi_server_config=sample_dapi_ci_server_config,
+        trigger_event=sample_dapi_ci_trigger_pull_request,
+    )
+
+    m_requests_post = mock_requests(
+        mocker,
+        "post",
+        {},
+    )
+    adapter.run()
+
+    assert m_requests_post.call_count == 0
+
+
+def test_run_with_no_changed_opendapi_files(
+    mocker,
+    sample_opendapi_file_contents,
+    sample_dapi_ci_server_config,
+    sample_dapi_ci_trigger_pull_request,
+):
+    """Test DAPIServerAdapter.run with no opendapi files"""
+    mocker.patch.object(
+        DAPIServerAdapter,
+        "get_all_opendapi_files",
+        return_value=sample_opendapi_file_contents,
+    )
+    mocker.patch.object(
+        DAPIServerAdapter,
+        "get_changed_opendapi_files",
+        return_value=OpenDAPIFileContents(
+            teams={},
+            datastores={},
+            purposes={},
+            dapis={},
+            root_dir="/path/to/repo",
+        ),
+    )
+    adapter = DAPIServerAdapter(
+        repo_root_dir="/path/to/repo",
+        dapi_server_config=sample_dapi_ci_server_config,
+        trigger_event=sample_dapi_ci_trigger_pull_request,
+    )
+    m_requests_post = mock_requests(
+        mocker,
+        "post",
+        {},
+    )
+    adapter.run()
+
+    assert m_requests_post.call_count == 0
 
 
 def test_main(mocker):

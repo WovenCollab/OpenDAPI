@@ -1,3 +1,9 @@
+---
+layout: page
+title: Background
+permalink: /background/
+---
+
 # Background
 
 OpenDAPI strives to shift-left the Data Governance and Data Collaboration concerns, and make them first-class concerns of the Modern Data Stack. We believe that it is possible to create self-discoverable and self-governed datasets.

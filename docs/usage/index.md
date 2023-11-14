@@ -1,3 +1,9 @@
+---
+layout: page
+title: Quickstart
+permalink: /usage/
+---
+
 # Quickstart
 
 In this guide, we will help you get started with OpenDAPI. We will cover how to
@@ -16,7 +22,7 @@ Add the library as a dependency, however you manage your dependencies. The libra
 #### requirements.txt
 If you use `requirements.txt`, add the following to your `requirements-dev.txt` file
 ```bash
-opendapi @ git+https://github.com/WovenCollab/OpenDAPI.git@main#subdirectory=client/python
+opendapi @ git+https://github.com/WovenCollab/OpenDAPI.git@stable#subdirectory=client/python
 ```
 
 #### setuptools
@@ -27,7 +33,7 @@ setup(
     extras_require={
         "dev": [
             ...
-            "opendapi @ git+https://github.com/WovenCollab/OpenDAPI.git@main#subdirectory=client/python",
+            "opendapi @ git+https://github.com/WovenCollab/OpenDAPI.git@stable#subdirectory=client/python",
         ]
     },
     ...
@@ -39,13 +45,13 @@ If you use `poetry`, add the following to your `pyproject.toml` file
 ```
 [tool.poetry.dev-dependencies]
 ...
-opendapi = { git = "https://github.com/WovenCollab/OpenDAPI.git", subdirectory = "client/python" }
+opendapi = { git = "https://github.com/WovenCollab/OpenDAPI.git", subdirectory = "client/python", branch = "stable" }
 ```
 
 #### pip
 If you just want to install in your virtual environment, you can use `pip` directly
 ```bash
-pip install git+https://github.com/WovenCollab/OpenDAPI.git@main#subdirectory=client/python
+pip install git+https://github.com/WovenCollab/OpenDAPI.git@stable#subdirectory=client/python
 ```
 
 ### Step 2: Setup Validators and add to your testing suite
@@ -198,7 +204,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: DAPI CI Action
-      uses: WovenCollab/OpenDAPI/actions/dapi_ci@main
+      uses: WovenCollab/OpenDAPI/actions/dapi_ci@stable
       with:
         # Store credentials in Github Repo secrets
         DAPI_SERVER_HOST: https://api.wovencollab.com

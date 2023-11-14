@@ -1,4 +1,11 @@
-# OpenDAPI
+<p align="left">
+    <a href="https://github.com/WovenCollab/OpenDAPI"  alt="GitHub">
+        <img src="https://img.shields.io/badge/github-%23121011.svg?style=for-the-badge&logo=github&logoColor=white" />
+    </a>
+    <a href="https://wovencollab.com" alt="Woven" >
+        <img src="https://woven-public.s3.amazonaws.com/static/img/logo.png" width="30" />
+    </a>
+</p>
 
 [OpenDAPI](https://opendapi.org) is an open protocol for creating _self-discoverable_ and _self-governed_ datasets.
 

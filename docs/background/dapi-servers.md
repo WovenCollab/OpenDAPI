@@ -1,3 +1,9 @@
+---
+layout: page
+title: DAPI server
+permalink: /background/dapi-servers/
+---
+
 # DAPI Servers
 
 **DAPI servers can take OpenDAPI to the next level** by providing a control plane for data management workflows, and enabling AI-powered data management.
