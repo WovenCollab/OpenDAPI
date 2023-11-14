@@ -481,39 +481,48 @@ def test_dapi_server_adapter_validate(
     sample_opendapi_file_contents,
     sample_dapi_ci_server_config,
     sample_dapi_ci_trigger_push,
+    sample_dapi_ci_trigger_pull_request,
 ):
     """Test DAPIServerAdapter.validate"""
     sample_dapi_ci_server_config.validate_dapi_individually = False
-    adapter = DAPIServerAdapter(
-        repo_root_dir="/path/to/repo",
-        dapi_server_config=sample_dapi_ci_server_config,
-        trigger_event=sample_dapi_ci_trigger_push,
-    )
+    for trigger_event in [
+        sample_dapi_ci_trigger_push,
+        sample_dapi_ci_trigger_pull_request,
+    ]:
+        adapter = DAPIServerAdapter(
+            repo_root_dir="/path/to/repo",
+            dapi_server_config=sample_dapi_ci_server_config,
+            trigger_event=trigger_event,
+        )
 
-    mock_post = mock_requests(
-        mocker,
-        "post",
-        {
-            "/validate": (
-                200,
-                {
-                    "text": "Validation successful",
-                    "md": "Validation successful",
-                    "success": True,
-                },
-            )
-        },
-    )
+        mock_post = mock_requests(
+            mocker,
+            "post",
+            {
+                "/validate": (
+                    200,
+                    {
+                        "text": "Validation successful",
+                        "md": "Validation successful",
+                        "success": True,
+                    },
+                )
+            },
+        )
+        mock_post.reset_mock()
+        adapter.validate()
 
-    adapter.validate()
-
-    assert mock_post.called
-    _, kwargs = mock_post.call_args
-    expected = {
-        key: sample_opendapi_file_contents.for_server()[key]
-        for key in ["dapis", "teams", "datastores", "purposes"]
-    }
-    assert kwargs["json"] == {"suggest_changes": True, **expected}
+        assert mock_post.called
+        _, kwargs = mock_post.call_args
+        expected = {
+            key: sample_opendapi_file_contents.for_server()[key]
+            for key in ["dapis", "teams", "datastores", "purposes"]
+        }
+        # suggest changes only for pull requests
+        assert kwargs["json"] == {
+            "suggest_changes": trigger_event.is_pull_request_event,
+            **expected,
+        }
 
 
 def test_dapi_server_adapter_validate_fails(

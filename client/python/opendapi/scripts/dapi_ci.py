@@ -34,6 +34,16 @@ class ChangeTriggerEvent:
     git_ref: str = None
     pull_request_number: Optional[int] = None
 
+    @property
+    def is_pull_request_event(self) -> bool:
+        """Check if the event is a pull request event"""
+        return self.event_type == "pull_request"
+
+    @property
+    def is_push_event(self) -> bool:
+        """Check if the event is a push event"""
+        return self.event_type == "push"
+
 
 @dataclass
 class DAPIServerConfig:
@@ -490,7 +500,10 @@ class DAPIServerAdapter:
                 "teams": all_files["teams"],
                 "datastores": all_files["datastores"],
                 "purposes": all_files["purposes"],
-                "suggest_changes": self.dapi_server_config.suggest_changes,
+                "suggest_changes": (
+                    self.dapi_server_config.suggest_changes
+                    and self.trigger_event.is_pull_request_event
+                ),
             },
         )
         if self.dapi_server_config.validate_dapi_individually:
@@ -506,6 +519,7 @@ class DAPIServerAdapter:
                         "suggest_changes": (
                             self.dapi_server_config.suggest_changes
                             and dapi_loc in self.changed_files.for_server()["dapis"]
+                            and self.trigger_event.is_pull_request_event
                         ),
                     },
                 )
@@ -516,7 +530,7 @@ class DAPIServerAdapter:
         """Check if we should register with the DAPI Server."""
         if (
             self.dapi_server_config.register_on_merge_to_mainline
-            and self.trigger_event.event_type == "push"
+            and self.trigger_event.is_push_event
             and self.trigger_event.git_ref
             == f"refs/heads/{self.dapi_server_config.mainline_branch_name}"
         ):
@@ -587,7 +601,7 @@ class DAPIServerAdapter:
         # Create Pull request commit with suggestions
         if (
             self.dapi_server_config.suggest_changes
-            and self.trigger_event.event_type == "pull_request"
+            and self.trigger_event.is_pull_request_event
         ):
             suggestions_pr_number = self.create_suggestions_pull_request(
                 validate_resp, "OpenDAPI suggestions"
@@ -607,7 +621,7 @@ class DAPIServerAdapter:
             self.add_action_summary(stats_resp)
 
         # Construct and add summary response as a Pull request comment
-        if self.trigger_event.event_type == "pull_request":
+        if self.trigger_event.is_pull_request_event:
             # Title
             pr_comment_md = "## "
             pr_comment_md += f'<a href="{validate_resp.server_meta.url}">'
