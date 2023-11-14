@@ -451,8 +451,8 @@ class DAPIServerAdapter:
 
         body += (
             f"We identified data model changes in #{self.trigger_event.pull_request_number} "
-            "and generated updated data documentation for you\n\n. "
-            "Please review and merge if this looks good.\n\n"
+            "and generated updated data documentation for you.\n\n "
+            "Please review and merge into your working branch if this looks good.\n\n"
         )
 
         suggestions_pr_number = self.create_or_update_pull_request(
@@ -628,10 +628,10 @@ class DAPIServerAdapter:
             if validate_resp.server_meta.logo_url:
                 pr_comment_md += (
                     f'<img src="{validate_resp.server_meta.logo_url}"'
-                    ' width="30" valign="middle"/>'
+                    ' width="30" valign="middle"/>  '
                 )
             pr_comment_md += (
-                f"  {validate_resp.server_meta.name} Data Documentation AI</a>\n\n"
+                f"{validate_resp.server_meta.name} Data Documentation AI</a>\n\n"
             )
 
             # Suggestions
