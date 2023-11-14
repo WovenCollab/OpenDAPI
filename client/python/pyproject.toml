@@ -32,5 +32,5 @@ requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.scripts]
-dapi_ci = "opendapi.scripts.dapi_ci:main"
+dapi_ci = "opendapi.scripts.dapi_ci:dapi_ci"
 dapi_setup = "opendapi.scripts.dapi_setup:dapi_setup"

@@ -1,11 +1,15 @@
 # pylint: disable=unused-argument, too-many-lines
 """Tests script/dapi_ci.py"""
+import json
 import os
 import subprocess
 from unittest import mock
 from typing import Dict, Tuple
 
 import pytest
+from click import ClickException
+from click.testing import CliRunner
+
 
 from opendapi.scripts.dapi_ci import (
     ChangeTriggerEvent,
@@ -14,7 +18,7 @@ from opendapi.scripts.dapi_ci import (
     DAPIServerMeta,
     DAPIServerResponse,
     OpenDAPIFileContents,
-    main,
+    dapi_ci,
 )
 from opendapi.validators.dapi import DapiValidator
 from opendapi.validators.datastores import DatastoresValidator
@@ -371,7 +375,7 @@ def test_dapi_server_adapter_git_diff_filenames(
         "subprocess.check_output",
         side_effect=subprocess.CalledProcessError(0, "Something went wrong"),
     )
-    with pytest.raises(SystemExit):
+    with pytest.raises(ClickException):
         adapter.git_diff_filenames("before_sha", "after_sha")
 
 
@@ -414,7 +418,7 @@ def test_ask_github_handles_400s(mocker):
             "/reviews": (422, {"message": "Unprocessable Entity"}),
         },
     )
-    with pytest.raises(SystemExit):
+    with pytest.raises(ClickException):
         # 400s should raise SystemExit
         adapter.ask_github("/pulls", {}, is_post=True)
 
@@ -541,7 +545,7 @@ def test_dapi_server_adapter_validate_fails(
         "post",
         {"/validate": (500, {})},
     )
-    with pytest.raises(SystemExit):
+    with pytest.raises(ClickException):
         adapter.validate()
 
     assert mock_post.called
@@ -1103,23 +1107,42 @@ def test_run_with_no_changed_opendapi_files(
     assert m_requests_post.call_count == 0
 
 
-def test_main(mocker):
+def test_dapi_ci(mocker):
     """Test the main function"""
     m_adapter_run = mocker.patch.object(DAPIServerAdapter, "run")
     m_open = mocker.mock_open(read_data="dummy")
     mocker.patch("builtins.open", m_open)
-    main()
+    runner = CliRunner()
+    result = runner.invoke(dapi_ci)  # pylint: disable=no-value-for-parameter
+    assert result.exit_code == 0
+    assert result.output.startswith("# OpenDAPI CI")
     m_adapter_run.assert_called_once()
 
 
-def test_main_unsupported_event_name(mocker):
+def test_dapi_ci_unspecified_event_path(mocker):
     """Test the main function"""
     new_environ = os.environ.copy()
-    new_environ["GITHUB_EVENT_NAME"] = "unsupported"
-    mocker.patch.dict(os.environ, new_environ)
+    new_environ.pop("GITHUB_EVENT_PATH", None)
+    mocker.patch.dict(os.environ, new_environ, clear=True)
     m_adapter_run = mocker.patch.object(DAPIServerAdapter, "run")
     m_open = mocker.mock_open(read_data="dummy")
     mocker.patch("builtins.open", m_open)
-    with pytest.raises(SystemExit):
-        main()
+    runner = CliRunner()
+    result = runner.invoke(dapi_ci)  # pylint: disable=no-value-for-parameter
+    assert result.exit_code == 1
+    assert result.output.startswith("Error: Event path not specified")
+    m_adapter_run.assert_not_called()
+
+
+def test_dapi_ci_invalid_github_event(mocker):
+    """Test the main function"""
+    m_adapter_run = mocker.patch.object(DAPIServerAdapter, "run")
+    m_open = mocker.mock_open(read_data="dummy")
+    mocker.patch("builtins.open", m_open)
+    m_json = mocker.patch("json.load")
+    m_json.side_effect = json.JSONDecodeError("error", "doc", 0)
+    runner = CliRunner()
+    result = runner.invoke(dapi_ci)  # pylint: disable=no-value-for-parameter
+    assert result.exit_code == 1
+    assert result.output.startswith("Error: Unable to load event json file")
     m_adapter_run.assert_not_called()
