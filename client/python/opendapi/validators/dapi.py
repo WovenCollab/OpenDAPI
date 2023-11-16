@@ -184,7 +184,7 @@ class PynamodbDapiValidator(DapiValidator):
                     ),
                     "description": PLACEHOLDER_TEXT,
                     "is_nullable": attribute.null,
-                    "is_pii": True,
+                    "is_pii": False,
                     "share_status": "unstable",
                 }
             )
@@ -335,7 +335,7 @@ class SqlAlchemyDapiValidator(DapiValidator):
                     ),
                     "description": PLACEHOLDER_TEXT,
                     "is_nullable": column.nullable,
-                    "is_pii": True,
+                    "is_pii": False,
                     "share_status": "unstable",
                 }
             )

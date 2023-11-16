@@ -113,7 +113,7 @@ class TestPynamodbDapiValidator:
                 "data_type": "object",
                 "description": PLACEHOLDER_TEXT,
                 "is_nullable": False,
-                "is_pii": True,
+                "is_pii": False,
                 "share_status": "unstable",
             },
             {
@@ -121,7 +121,7 @@ class TestPynamodbDapiValidator:
                 "data_type": "string",
                 "description": PLACEHOLDER_TEXT,
                 "is_nullable": False,
-                "is_pii": True,
+                "is_pii": False,
                 "share_status": "unstable",
             },
             {
@@ -129,7 +129,7 @@ class TestPynamodbDapiValidator:
                 "data_type": "string",
                 "description": PLACEHOLDER_TEXT,
                 "is_nullable": False,
-                "is_pii": True,
+                "is_pii": False,
                 "share_status": "unstable",
             },
             {
@@ -137,7 +137,7 @@ class TestPynamodbDapiValidator:
                 "data_type": "array",
                 "description": PLACEHOLDER_TEXT,
                 "is_nullable": False,
-                "is_pii": True,
+                "is_pii": False,
                 "share_status": "unstable",
             },
             {
@@ -145,7 +145,7 @@ class TestPynamodbDapiValidator:
                 "data_type": "string",
                 "description": PLACEHOLDER_TEXT,
                 "is_nullable": False,
-                "is_pii": True,
+                "is_pii": False,
                 "share_status": "unstable",
             },
             {
@@ -153,7 +153,7 @@ class TestPynamodbDapiValidator:
                 "data_type": "string",
                 "description": PLACEHOLDER_TEXT,
                 "is_nullable": False,
-                "is_pii": True,
+                "is_pii": False,
                 "share_status": "unstable",
             },
             {
@@ -161,7 +161,7 @@ class TestPynamodbDapiValidator:
                 "data_type": "string",
                 "description": PLACEHOLDER_TEXT,
                 "is_nullable": False,
-                "is_pii": True,
+                "is_pii": False,
                 "share_status": "unstable",
             },
         ]
@@ -312,7 +312,7 @@ class TestSqlAlchemyDapiValidator:
                 "data_type": "string",
                 "description": PLACEHOLDER_TEXT,
                 "is_nullable": True,
-                "is_pii": True,
+                "is_pii": False,
                 "share_status": "unstable",
             },
             {
@@ -320,7 +320,7 @@ class TestSqlAlchemyDapiValidator:
                 "data_type": "number",
                 "description": PLACEHOLDER_TEXT,
                 "is_nullable": False,
-                "is_pii": True,
+                "is_pii": False,
                 "share_status": "unstable",
             },
             {
@@ -328,7 +328,7 @@ class TestSqlAlchemyDapiValidator:
                 "data_type": "string",
                 "description": PLACEHOLDER_TEXT,
                 "is_nullable": False,
-                "is_pii": True,
+                "is_pii": False,
                 "share_status": "unstable",
             },
         ]
