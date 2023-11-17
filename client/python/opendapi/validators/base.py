@@ -180,7 +180,7 @@ class BaseValidator:
         try:
             validate(content, self.schema_cache[jsonschema_ref])
         except JsonValidationError as exc:
-            error_message = f"Validation error for {file}: {str(exc)}"
+            error_message = f"Validation error for {file}: \n{str(exc)}"
             raise ValidationError(error_message) from exc
 
     def base_template_for_autoupdate(self) -> Dict[str, Dict]:

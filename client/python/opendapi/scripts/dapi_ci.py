@@ -4,12 +4,13 @@
 import json
 import os
 import subprocess  # nosec: B404
-import sys
 
 from typing import Dict, List, Optional
-
 from dataclasses import dataclass
 from urllib.parse import urljoin
+
+import click
+from click import ClickException
 from deepmerge import always_merger
 from ruamel.yaml import YAML
 
@@ -214,11 +215,7 @@ class DAPIServerAdapter:
                 cwd=self.repo_root_dir,
             )  # nosec
         except subprocess.CalledProcessError as exc:
-            print(
-                f"Error while running git command {command_split}: {exc}",
-                file=sys.stderr,
-            )
-            sys.exit(1)
+            raise ClickException(f"git command {command_split}: {exc}") from exc
 
     def git_diff_filenames(
         self, before_change_sha: str, after_change_sha: str
@@ -269,14 +266,12 @@ class DAPIServerAdapter:
             )
         # Error on any status code other than 201 (created) or 422 (PR already exists)
         if response.status_code > 400 and response.status_code != 422:
-            print(
+            raise ClickException(
                 "Something went wrong! "
                 f"API failure with {response.status_code} for creating a "
                 f"pull request at {self.trigger_event.repo_api_url}/{api_path}. "
-                f"Response: {response.text}",
-                file=sys.stderr,
+                f"Response: {response.text}"
             )
-            sys.exit(1)
 
         return response.json()
 
@@ -334,10 +329,12 @@ class DAPIServerAdapter:
 
         # Server responds with a detailed error on 400, so only error when status > 400
         if response.status_code > 400:
-            self.display_markdown_summary(
-                f"Something went wrong! API failure with {response.status_code} for {request_path}"
+            msg = (
+                f"Something went wrong! API failure with {response.status_code} "
+                f"for {request_path}"
             )
-            sys.exit(1)
+            self.display_markdown_summary(msg)
+            raise ClickException(msg)
 
         message = response.json()
 
@@ -672,30 +669,75 @@ class DAPIServerAdapter:
             self.add_pull_request_comment(pr_comment_md)
 
 
-def _force_boolean(value: str) -> bool:
-    """Force a string to be a boolean."""
-    return value.lower() in ["true", "1", "t", "y", "yes"]
+@click.command()
+@click.option(
+    "--github-event-name",
+    type=click.Choice(["push", "pull_request"], case_sensitive=True),
+    envvar="GITHUB_EVENT_NAME",
+    show_envvar=True,
+)
+@click.option("--github-workspace", envvar="GITHUB_WORKSPACE", show_envvar=True)
+@click.option("--github-step-summary", envvar="GITHUB_STEP_SUMMARY", show_envvar=True)
+@click.option(
+    "--github-event-path",
+    type=click.File("rb"),
+    envvar="GITHUB_EVENT_PATH",
+    show_envvar=True,
+)
+@click.option("--github-token", envvar="GITHUB_TOKEN", show_envvar=True)
+@click.option("--dapi-server-host", envvar="DAPI_SERVER_HOST", show_envvar=True)
+@click.option("--dapi-server-api-key", envvar="DAPI_SERVER_API_KEY", show_envvar=True)
+@click.option(
+    "--mainline-branch", default="main", envvar="MAINLINE_BRANCH_NAME", show_envvar=True
+)
+@click.option(
+    "--register-on-merge-to-mainline",
+    is_flag=True,
+    default=False,
+    envvar="REGISTER_ON_MERGE_TO_MAINLINE",
+    show_envvar=True,
+)
+@click.option(
+    "--suggest-changes",
+    is_flag=True,
+    default=False,
+    envvar="SUGGEST_CHANGES",
+    show_envvar=True,
+)
+def dapi_ci(
+    github_event_name: str,
+    github_workspace: str,
+    github_step_summary: str,
+    github_event_path: str,
+    github_token: str,
+    dapi_server_host: str,
+    dapi_server_api_key: str,
+    mainline_branch: str,
+    register_on_merge_to_mainline: bool,
+    suggest_changes: bool,
+):  # pylint: disable=too-many-arguments,too-many-locals
+    """Github Action handler CLI script for DAPI validation"""
 
+    if not github_event_path:
+        raise ClickException("Event path not specified")
 
-def main():
-    """Run the action."""
+    try:
+        github_event = json.load(github_event_path)
+    except json.JSONDecodeError as exc:
+        raise ClickException(
+            f"Unable to load event json file {github_event_path.name}: {exc}"
+        ) from exc
+
     # Rebuild github context from environment variables
     gh_context: dict = {
-        "event_name": os.environ["GITHUB_EVENT_NAME"],
-        "root_dir": os.environ["GITHUB_WORKSPACE"],
-        "step_summary_path": os.environ["GITHUB_STEP_SUMMARY"],
-        "event_path": os.environ["GITHUB_EVENT_PATH"],
-        "token": os.environ["GITHUB_TOKEN"],
+        "event_name": github_event_name,
+        "root_dir": github_workspace,
+        "step_summary_path": github_step_summary,
+        "event_path": github_event_path,
+        "token": github_token,
+        "event": github_event,
     }
-    with open(gh_context["event_path"], "r", encoding="utf-8") as file_ptr:
-        gh_context["event"] = json.load(file_ptr)
 
-    if gh_context["event_name"] not in ["push", "pull_request"]:
-        print(
-            f"Uh ho! Error! Unsupported event type: {gh_context['event_name']}",
-            file=sys.stderr,
-        )
-        sys.exit(1)
     change_trigger_event = ChangeTriggerEvent(
         event_type=gh_context["event_name"],
         repo_api_url=gh_context["event"]["repository"]["url"],
@@ -716,11 +758,11 @@ def main():
     )
 
     dapi_server_config = DAPIServerConfig(
-        server_host=os.environ["DAPI_SERVER_HOST"],
-        api_key=os.environ["DAPI_SERVER_API_KEY"],
-        mainline_branch_name=os.environ["MAINLINE_BRANCH_NAME"],
-        register_on_merge_to_mainline=os.environ["REGISTER_ON_MERGE_TO_MAINLINE"],
-        suggest_changes=_force_boolean(os.environ["SUGGEST_CHANGES"]),
+        server_host=dapi_server_host,
+        api_key=dapi_server_api_key,
+        mainline_branch_name=mainline_branch,
+        register_on_merge_to_mainline=register_on_merge_to_mainline,
+        suggest_changes=suggest_changes,
     )
 
     dapi_server_adapter = DAPIServerAdapter(
@@ -734,3 +776,7 @@ def main():
         "Here we will validate, register, and analyze the impact of changes to OpenDAPI files."
     )
     dapi_server_adapter.run()
+
+
+if __name__ == "__main__":
+    dapi_ci()  # pylint: disable=no-value-for-parameter  # pragma: no cover

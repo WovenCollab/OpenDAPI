@@ -18,6 +18,17 @@ if TYPE_CHECKING:
     from sqlalchemy import MetaData, Table  # pragma: no cover
 
 
+try:
+    import click
+
+    secho = click.secho
+except ImportError:  # pragma: no cover
+
+    def secho(*args, **kwargs):  # pylint: disable=unused-argument
+        """Temporary wrapper for secho if click is not installed"""
+        print(*args)
+
+
 class RunnerException(Exception):
     """Exceptions during Runner execution"""
 
@@ -358,7 +369,21 @@ class Runner:
 
         return DefaultMySqlAlchemyDapiValidator
 
-    def run(self):
+    def print_errors(self, errors):
+        """Prints all the errors"""
+        if errors:
+            secho("\n\n")
+            secho("OpenDAPI: Encountered validation errors", fg="red", bold=True)
+
+        for error in errors:
+            secho("\n")
+            secho("OpenDAPI: ", nl=False, fg="green", bold=True)
+            secho(error.prefix_message, fg="red")
+            for err in error.errors:
+                secho(err)
+        secho("\n\n")
+
+    def run(self, print_errors=True):
         """Runs all the validations"""
         errors = []
         validator_clss = [
@@ -390,4 +415,7 @@ class Runner:
                 errors.append(exc)
 
         if errors:
+            if print_errors:
+                self.print_errors(errors)
+                raise RunnerException("Encountered one or more validation errors")
             raise RunnerException(errors)

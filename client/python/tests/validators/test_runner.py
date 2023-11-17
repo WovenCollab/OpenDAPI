@@ -555,6 +555,11 @@ def test_run_with_errors(mocker):
     )
 
     with pytest.raises(RunnerException) as exc_info:
-        runner.run()
+        runner.run(print_errors=False)
 
     assert "Error in TeamsValidator" in str(exc_info.value)
+
+    with pytest.raises(RunnerException) as exc_info:
+        runner.run(print_errors=True)
+
+    assert "Encountered one or more validation errors" in str(exc_info.value)
